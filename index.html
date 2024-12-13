@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Multiplayer Ball Game</title>
+    <title>Single Player Ball Game</title>
     <style>
         body {
             margin: 0;
@@ -43,6 +43,8 @@
         };
 
         const opponentBall = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
             radius: 20,
             color: 'red',
             speed: 1, // Slow speed for opponent ball
@@ -61,50 +63,6 @@
         let mouseX = 0;
         let mouseY = 0;
 
-        // Function to spawn the opponent ball at the edge of the canvas
-        function spawnOpponentBall() {
-            const edge = Math.floor(Math.random() * 4); // Randomly pick an edge: 0=left, 1=right, 2=top, 3=bottom
-
-            if (edge === 0) {
-                opponentBall.x = 0 - opponentBall.radius; // Left edge
-                opponentBall.y = Math.random() * canvas.height;
-            } else if (edge === 1) {
-                opponentBall.x = canvas.width + opponentBall.radius; // Right edge
-                opponentBall.y = Math.random() * canvas.height;
-            } else if (edge === 2) {
-                opponentBall.x = Math.random() * canvas.width;
-                opponentBall.y = 0 - opponentBall.radius; // Top edge
-            } else if (edge === 3) {
-                opponentBall.x = Math.random() * canvas.width;
-                opponentBall.y = canvas.height + opponentBall.radius; // Bottom edge
-            }
-        }
-
-        // Call spawnOpponentBall initially to set the opponent's position
-        spawnOpponentBall();
-
-        // Connect to the server
-        const socket = new WebSocket('ws://localhost:3000');
-
-        // Handle WebSocket events
-        socket.onopen = () => {
-            console.log('Connected to WebSocket server.');
-        };
-
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            opponentBall.x = data.x;
-            opponentBall.y = data.y;
-        };
-
-        socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-
-        socket.onclose = () => {
-            console.warn('WebSocket connection closed.');
-        };
-
         // Update player ball position
         function update() {
             playerBall.x += playerBall.dx;
@@ -115,11 +73,6 @@
             if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
             if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
             if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
-
-            // Only send data if WebSocket is open
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ x: playerBall.x, y: playerBall.y }));
-            }
 
             // Move opponent ball towards the player ball
             moveOpponentBall();
@@ -282,4 +235,3 @@
     </script>
 </body>
 </html>
-
