@@ -188,12 +188,28 @@
             if (event.key === 'a') playerBall.dx = -playerBall.speed;
             if (event.key === 's') playerBall.dy = playerBall.speed;
             if (event.key === 'd') playerBall.dx = playerBall.speed;
+
+            normalizeSpeed();
         }
 
         function handleKeyUp(event) {
             if (['w', 'a', 's', 'd'].includes(event.key)) {
                 if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
                 if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
+            }
+
+            normalizeSpeed();
+        }
+
+        // Normalize speed to ensure diagonal movement does not exceed normal speed
+        function normalizeSpeed() {
+            // Calculate the current movement vector length
+            const magnitude = Math.sqrt(playerBall.dx * playerBall.dx + playerBall.dy * playerBall.dy);
+
+            // If both dx and dy are non-zero (diagonal movement), normalize the vector
+            if (magnitude > playerBall.speed) {
+                playerBall.dx = (playerBall.dx / magnitude) * playerBall.speed;
+                playerBall.dy = (playerBall.dy / magnitude) * playerBall.speed;
             }
         }
 
@@ -217,7 +233,7 @@
 
         // Start the game
         gameLoop();
-
     </script>
 </body>
 </html>
+
