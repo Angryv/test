@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Multiplayer Ball Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: white;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas to fullscreen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Ball properties
+        const playerBall = {
+            x: canvas.width / 4,
+            y: canvas.height / 2,
+            radius: 20,
+            color: 'blue',
+            speed: 5,
+            dx: 0,
+            dy: 0
+        };
+
+        const opponentBall = {
+            radius: 20,
+            color: 'red',
+            speed: 1, // Slow speed for opponent ball
+            dx: 0,
+            dy: 0
+        };
+
+        // Gun properties
+        const gun = {
+            length: 40, // Length of the gun
+            width: 5, // Width of the gun barrel
+            angle: 0, // Current rotation angle of the gun
+            color: 'black'
+        };
+
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // Function to spawn the opponent ball at the edge of the canvas
+        function spawnOpponentBall() {
+            const edge = Math.floor(Math.random() * 4); // Randomly pick an edge: 0=left, 1=right, 2=top, 3=bottom
+
+            if (edge === 0) {
+                opponentBall.x = 0 - opponentBall.radius; // Left edge
+                opponentBall.y = Math.random() * canvas.height;
+            } else if (edge === 1) {
+                opponentBall.x = canvas.width + opponentBall.radius; // Right edge
+                opponentBall.y = Math.random() * canvas.height;
+            } else if (edge === 2) {
+                opponentBall.x = Math.random() * canvas.width;
+                opponentBall.y = 0 - opponentBall.radius; // Top edge
+            } else if (edge === 3) {
+                opponentBall.x = Math.random() * canvas.width;
+                opponentBall.y = canvas.height + opponentBall.radius; // Bottom edge
+            }
+        }
+
+        // Call spawnOpponentBall initially to set the opponent's position
+        spawnOpponentBall();
+
+        // Connect to the server
+        const socket = new WebSocket('ws://localhost:3000');
+
+        // Handle WebSocket events
+        socket.onopen = () => {
+            console.log('Connected to WebSocket server.');
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            opponentBall.x = data.x;
+            opponentBall.y = data.y;
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        socket.onclose = () => {
+            console.warn('WebSocket connection closed.');
+        };
+
+        // Update player ball position
+        function update() {
+            playerBall.x += playerBall.dx;
+            playerBall.y += playerBall.dy;
+
+            // Prevent ball from going out of bounds
+            if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
+            if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
+            if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
+            if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
+
+            // Only send data if WebSocket is open
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ x: playerBall.x, y: playerBall.y }));
+            }
+
+            // Move opponent ball towards the player ball
+            moveOpponentBall();
+        }
+
+        // Move the opponent ball towards the player ball
+        function moveOpponentBall() {
+            const dx = playerBall.x - opponentBall.x;
+            const dy = playerBall.y - opponentBall.y;
+
+            const distance = Math.sqrt(dx * dx + dy * dy); // Calculate distance to the player ball
+            if (distance === 0) return; // Avoid division by zero
+
+            // Normalize the direction
+            opponentBall.dx = (dx / distance) * opponentBall.speed;
+            opponentBall.dy = (dy / distance) * opponentBall.speed;
+
+            // Update opponent ball position
+            opponentBall.x += opponentBall.dx;
+            opponentBall.y += opponentBall.dy;
+
+            // Prevent opponent ball from going out of bounds
+            if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
+            if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
+            if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
+            if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
+        }
+
+        // Draw the balls
+        function drawBalls() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player ball
+            ctx.beginPath();
+            ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
+            ctx.fillStyle = playerBall.color;
+            ctx.fill();
+            ctx.closePath();
+
+            // Draw opponent ball
+            ctx.beginPath();
+            ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
+            ctx.fillStyle = opponentBall.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Draw the gun
+        function drawGun() {
+            // Calculate angle between blue ball and cursor position
+            const dx = mouseX - playerBall.x;
+            const dy = mouseY - playerBall.y;
+            gun.angle = Math.atan2(dy, dx);
+
+            // Gun's x and y position (on the ball's surface)
+            const gunX = playerBall.x + Math.cos(gun.angle) * playerBall.radius;
+            const gunY = playerBall.y + Math.sin(gun.angle) * playerBall.radius;
+
+            // Draw the gun (a line)
+            ctx.beginPath();
+            ctx.moveTo(gunX, gunY);
+            ctx.lineTo(gunX + Math.cos(gun.angle) * gun.length, gunY + Math.sin(gun.angle) * gun.length);
+            ctx.lineWidth = gun.width;
+            ctx.strokeStyle = gun.color;
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // Handle keyboard events
+        function handleKeyDown(event) {
+            if (event.key === 'w') playerBall.dy = -playerBall.speed;
+            if (event.key === 'a') playerBall.dx = -playerBall.speed;
+            if (event.key === 's') playerBall.dy = playerBall.speed;
+            if (event.key === 'd') playerBall.dx = playerBall.speed;
+        }
+
+        function handleKeyUp(event) {
+            if (['w', 'a', 's', 'd'].includes(event.key)) {
+                if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
+                if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
+            }
+        }
+
+        // Update mouse position
+        window.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
+        // Game loop
+        function gameLoop() {
+            update();
+            drawBalls();
+            drawGun(); // Draw the gun
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        // Start the game
+        gameLoop();
+
+    </script>
+</body>
+</html>
