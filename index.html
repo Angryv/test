@@ -219,9 +219,9 @@
                 playerBall.isDashing = true; // Set dash state to true
                 playerBall.lastDashTime = currentTime; // Update last dash time
                 playerBall.dashTime = currentTime; // Start dash time
-                playerBall.dashDirection = { dx: -playerBall.dx, dy: -playerBall.dy }; // Dash in the opposite direction
+                playerBall.dashDirection = { dx: playerBall.dx, dy: playerBall.dy }; // Dash in the same direction as movement
 
-                // Dash in the opposite direction
+                // Dash in the current movement direction
                 playerBall.x += playerBall.dashDirection.dx * playerBall.dashSpeed;
                 playerBall.y += playerBall.dashDirection.dy * playerBall.dashSpeed;
 
@@ -262,8 +262,7 @@
                 if (dashDuration < 100) {
                     ctx.beginPath();
                     ctx.moveTo(playerBall.x, playerBall.y);
-                    ctx.lineTo(playerBall.x + playerBall.dashDirection.dx * playerBall.dashSpeed, 
-                               playerBall.y + playerBall.dashDirection.dy * playerBall.dashSpeed);
+                    ctx.lineTo(playerBall.x - playerBall.dashDirection.dx * playerBall.dashSpeed, playerBall.y - playerBall.dashDirection.dy * playerBall.dashSpeed);
                     ctx.lineWidth = 5;
                     ctx.strokeStyle = 'purple';
                     ctx.stroke();
@@ -283,3 +282,4 @@
     </script>
 </body>
 </html>
+
