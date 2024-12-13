@@ -21,6 +21,10 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Set initial canvas size to full screen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
         // Ball properties
         const playerBall = {
             x: canvas.width / 4,
@@ -28,11 +32,11 @@
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 40, // Dash distance
+            dashSpeed: 30, // Dash distance (2x the normal speed)
             dx: 0,
             dy: 0,
             isDashing: false, // Flag for whether the player is dashing
-            dashCooldown: 1800, // 1.8 seconds cooldown
+            dashCooldown: 2000, // 2 seconds cooldown
             lastDashTime: 0, // Last time the player dashed
             dashTime: 0, // Time when dash started
             dashDirection: { dx: 0, dy: 0 } // Store dash direction for animation
@@ -245,4 +249,3 @@
     </script>
 </body>
 </html>
-
