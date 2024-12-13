@@ -68,13 +68,12 @@
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 30,
+            dashSpeed: 100, // Dash distance
             dx: 0,
             dy: 0,
             isDashing: false,
             dashCooldown: 1800,
             lastDashTime: 0,
-            dashTime: 0,
             dashDirection: { dx: 0, dy: 0 },
         };
 
@@ -86,13 +85,6 @@
             speed: 1,
             dx: 0,
             dy: 0,
-        };
-
-        const gun = {
-            length: 24,
-            width: 12,
-            angle: 0,
-            color: 'black',
         };
 
         let mouseX = 0;
@@ -114,9 +106,11 @@
         function update() {
             if (!gameStarted || gamePaused) return;
 
+            // Update position
             playerBall.x += playerBall.dx;
             playerBall.y += playerBall.dy;
 
+            // Prevent going out of bounds
             if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
             if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
             if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
@@ -147,12 +141,14 @@
         function drawBalls() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Player ball
             ctx.beginPath();
             ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = playerBall.color;
             ctx.fill();
             ctx.closePath();
 
+            // Opponent ball
             ctx.beginPath();
             ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = opponentBall.color;
@@ -165,18 +161,35 @@
 
             const dx = mouseX - playerBall.x;
             const dy = mouseY - playerBall.y;
-            gun.angle = Math.atan2(dy, dx);
+            const angle = Math.atan2(dy, dx);
 
-            const gunX = playerBall.x + Math.cos(gun.angle) * playerBall.radius;
-            const gunY = playerBall.y + Math.sin(gun.angle) * playerBall.radius;
+            const gunX = playerBall.x + Math.cos(angle) * playerBall.radius;
+            const gunY = playerBall.y + Math.sin(angle) * playerBall.radius;
 
             ctx.beginPath();
             ctx.moveTo(gunX, gunY);
-            ctx.lineTo(gunX + Math.cos(gun.angle) * gun.length, gunY + Math.sin(gun.angle) * gun.length);
-            ctx.lineWidth = gun.width;
-            ctx.strokeStyle = gun.color;
+            ctx.lineTo(gunX + Math.cos(angle) * 24, gunY + Math.sin(angle) * 24);
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = 'black';
             ctx.stroke();
             ctx.closePath();
+        }
+
+        function dash() {
+            const currentTime = Date.now();
+            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
+                playerBall.isDashing = true;
+                playerBall.lastDashTime = currentTime;
+
+                playerBall.dashDirection = { dx: playerBall.dx, dy: playerBall.dy };
+
+                playerBall.x += playerBall.dashDirection.dx * playerBall.dashSpeed;
+                playerBall.y += playerBall.dashDirection.dy * playerBall.dashSpeed;
+
+                setTimeout(() => {
+                    playerBall.isDashing = false;
+                }, 100);
+            }
         }
 
         window.addEventListener('mousemove', (event) => {
@@ -189,16 +202,19 @@
                 gamePaused = !gamePaused;
                 pauseMenu.style.display = gamePaused ? 'flex' : 'none';
             }
+
             if (!gameStarted || gamePaused) return;
 
             if (event.key === 'w') playerBall.dy = -playerBall.speed;
             if (event.key === 'a') playerBall.dx = -playerBall.speed;
             if (event.key === 's') playerBall.dy = playerBall.speed;
             if (event.key === 'd') playerBall.dx = playerBall.speed;
+            if (event.key === 'Shift') dash();
         });
 
         window.addEventListener('keyup', (event) => {
             if (!gameStarted || gamePaused) return;
+
             if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
             if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
         });
@@ -214,5 +230,6 @@
     </script>
 </body>
 </html>
+
 
 
