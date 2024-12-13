@@ -96,13 +96,14 @@
         let gamePaused = false;
 
         startButton.addEventListener('click', () => {
-            menu.style.display = 'none';
+            menu.style.display = 'none'; // Hide the menu when the game starts
             gameStarted = true;
             gamePaused = false;
+            gameLoop(); // Start the game loop
         });
 
         continueButton.addEventListener('click', () => {
-            pauseMenu.style.display = 'none';
+            pauseMenu.style.display = 'none'; // Hide the pause menu
             gamePaused = false;
         });
 
@@ -231,4 +232,41 @@
             }
         }
 
-        window.addEvent
+        window.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+
+            // Normalize movement direction
+            const dx = mouseX - playerBall.x;
+            const dy = mouseY - playerBall.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            if (length !== 0) {
+                playerBall.dx = (dx / length) * playerBall.speed;
+                playerBall.dy = (dy / length) * playerBall.speed;
+            }
+        });
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === ' ') {
+                dash();
+            } else if (event.key === 'Escape') {
+                gamePaused = true;
+                pauseMenu.style.display = 'flex';
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        function gameLoop() {
+            update();
+            drawBalls();
+            drawGun();
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
+
