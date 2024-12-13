@@ -19,7 +19,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8); /* Dark filter */
+            background-color: rgba(0, 0, 0, 0.8);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -39,7 +39,7 @@
             background-color: darkblue;
         }
         #pauseMenu {
-            display: none; /* Hidden by default */
+            display: none;
         }
     </style>
 </head>
@@ -68,7 +68,7 @@
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 40, // Dash distance
+            dashSpeed: 40,
             dx: 0,
             dy: 0,
             isDashing: false,
@@ -86,6 +86,9 @@
             dx: 0,
             dy: 0,
         };
+
+        const afterimages = [];
+        const afterimageLifetime = 300; // in milliseconds
 
         let mouseX = 0;
         let mouseY = 0;
@@ -117,6 +120,7 @@
             if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
 
             moveOpponentBall();
+            updateAfterimages();
         }
 
         function moveOpponentBall() {
@@ -140,6 +144,15 @@
 
         function drawBalls() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw afterimages
+            afterimages.forEach(({ x, y, radius, opacity }) => {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+                ctx.fill();
+                ctx.closePath();
+            });
 
             // Player ball
             ctx.beginPath();
@@ -181,10 +194,13 @@
                 playerBall.isDashing = true;
                 playerBall.lastDashTime = currentTime;
 
-                playerBall.dashDirection = { dx: playerBall.dx, dy: playerBall.dy };
+                const dashX = playerBall.x + playerBall.dx * playerBall.dashSpeed;
+                const dashY = playerBall.y + playerBall.dy * playerBall.dashSpeed;
 
-                playerBall.x += playerBall.dashDirection.dx * playerBall.dashSpeed;
-                playerBall.y += playerBall.dashDirection.dy * playerBall.dashSpeed;
+                createAfterimages(playerBall.x, playerBall.y, dashX, dashY);
+
+                playerBall.x = dashX;
+                playerBall.y = dashY;
 
                 setTimeout(() => {
                     playerBall.isDashing = false;
@@ -192,44 +208,27 @@
             }
         }
 
-        window.addEventListener('mousemove', (event) => {
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-        });
-
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                gamePaused = !gamePaused;
-                pauseMenu.style.display = gamePaused ? 'flex' : 'none';
+        function createAfterimages(startX, startY, endX, endY) {
+            const steps = 10;
+            for (let i = 0; i < steps; i++) {
+                const t = i / steps;
+                afterimages.push({
+                    x: startX + t * (endX - startX),
+                    y: startY + t * (endY - startY),
+                    radius: playerBall.radius,
+                    opacity: 1 - t,
+                    timestamp: Date.now(),
+                });
             }
-
-            if (!gameStarted || gamePaused) return;
-
-            if (event.key === 'w') playerBall.dy = -playerBall.speed;
-            if (event.key === 'a') playerBall.dx = -playerBall.speed;
-            if (event.key === 's') playerBall.dy = playerBall.speed;
-            if (event.key === 'd') playerBall.dx = playerBall.speed;
-            if (event.key === 'Shift') dash();
-        });
-
-        window.addEventListener('keyup', (event) => {
-            if (!gameStarted || gamePaused) return;
-
-            if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
-            if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
-        });
-
-        function gameLoop() {
-            update();
-            drawBalls();
-            drawGun();
-            requestAnimationFrame(gameLoop);
         }
 
-        gameLoop();
-    </script>
-</body>
-</html>
+        function updateAfterimages() {
+            const currentTime = Date.now();
+            for (let i = afterimages.length - 1; i >= 0; i--) {
+                if (currentTime - afterimages[i].timestamp > afterimageLifetime) {
+                    afterimages.splice(i, 1);
+                }
+            }
+        }
 
-
-
+        window.addEvent
