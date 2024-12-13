@@ -51,25 +51,23 @@
         const menu = document.getElementById('menu');
         const startButton = document.getElementById('startButton');
 
-        // Set canvas to fullscreen
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Ball properties
         const playerBall = {
             x: canvas.width / 4,
             y: canvas.height / 2,
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 30, // Dash distance (2x the normal speed)
+            dashSpeed: 30,
             dx: 0,
             dy: 0,
-            isDashing: false, // Flag for whether the player is dashing
-            dashCooldown: 1800, // 2 seconds cooldown
-            lastDashTime: 0, // Last time the player dashed
-            dashTime: 0, // Time when dash started
-            dashDirection: { dx: 0, dy: 0 } // Store dash direction for animation
+            isDashing: false,
+            dashCooldown: 1800,
+            lastDashTime: 0,
+            dashTime: 0,
+            dashDirection: { dx: 0, dy: 0 },
         };
 
         const opponentBall = {
@@ -77,75 +75,69 @@
             y: Math.random() * canvas.height,
             radius: 20,
             color: 'red',
-            speed: 1, // Slow speed for opponent ball
+            speed: 1,
             dx: 0,
-            dy: 0
+            dy: 0,
         };
 
-        // Gun properties
         const gun = {
-            length: 24, // Length of the gun
-            width: 12, // Width of the gun barrel
-            angle: 0, // Current rotation angle of the gun
-            color: 'black'
+            length: 24,
+            width: 12,
+            angle: 0,
+            color: 'black',
         };
 
         let mouseX = 0;
         let mouseY = 0;
-        let gameStarted = false; // Flag to track if the game has started
+        let gameStarted = false;
 
-        // Update player ball position
+        startButton.addEventListener('click', () => {
+            menu.style.display = 'none'; // Hide the menu
+            gameStarted = true;          // Start the game
+        });
+
         function update() {
-            if (!gameStarted) return; // Do not update positions if the game hasn't started
+            if (!gameStarted) return;
 
             playerBall.x += playerBall.dx;
             playerBall.y += playerBall.dy;
 
-            // Prevent ball from going out of bounds
             if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
             if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
             if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
             if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
 
-            // Move opponent ball towards the player ball
             moveOpponentBall();
         }
 
-        // Move the opponent ball towards the player ball
         function moveOpponentBall() {
             const dx = playerBall.x - opponentBall.x;
             const dy = playerBall.y - opponentBall.y;
 
-            const distance = Math.sqrt(dx * dx + dy * dy); // Calculate distance to the player ball
-            if (distance === 0) return; // Avoid division by zero
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance === 0) return;
 
-            // Normalize the direction
             opponentBall.dx = (dx / distance) * opponentBall.speed;
             opponentBall.dy = (dy / distance) * opponentBall.speed;
 
-            // Update opponent ball position
             opponentBall.x += opponentBall.dx;
             opponentBall.y += opponentBall.dy;
 
-            // Prevent opponent ball from going out of bounds
             if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
             if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
             if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
             if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
         }
 
-        // Draw the balls
         function drawBalls() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw player ball
             ctx.beginPath();
             ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = playerBall.color;
             ctx.fill();
             ctx.closePath();
 
-            // Draw opponent ball
             ctx.beginPath();
             ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = opponentBall.color;
@@ -153,20 +145,16 @@
             ctx.closePath();
         }
 
-        // Draw the gun
         function drawGun() {
-            if (!gameStarted) return; // Do not draw the gun if the game hasn't started
+            if (!gameStarted) return;
 
-            // Calculate angle between blue ball and cursor position
             const dx = mouseX - playerBall.x;
             const dy = mouseY - playerBall.y;
             gun.angle = Math.atan2(dy, dx);
 
-            // Gun's x and y position (on the ball's surface)
             const gunX = playerBall.x + Math.cos(gun.angle) * playerBall.radius;
             const gunY = playerBall.y + Math.sin(gun.angle) * playerBall.radius;
 
-            // Draw the gun (a line)
             ctx.beginPath();
             ctx.moveTo(gunX, gunY);
             ctx.lineTo(gunX + Math.cos(gun.angle) * gun.length, gunY + Math.sin(gun.angle) * gun.length);
@@ -176,41 +164,34 @@
             ctx.closePath();
         }
 
-        // Handle keyboard events
-        function handleKeyDown(event) {
-            if (!gameStarted) return; // Do not handle input if the game hasn't started
+        window.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
 
+        function gameLoop() {
+            update();
+            drawBalls();
+            drawGun();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('keydown', (event) => {
+            if (!gameStarted) return;
             if (event.key === 'w') playerBall.dy = -playerBall.speed;
             if (event.key === 'a') playerBall.dx = -playerBall.speed;
             if (event.key === 's') playerBall.dy = playerBall.speed;
             if (event.key === 'd') playerBall.dx = playerBall.speed;
+        });
 
-            if (event.key === 'Shift' && !playerBall.isDashing) {
-                dash(); // Perform the dash if not already dashing
-            }
+        window.addEventListener('keyup', (event) => {
+            if (!gameStarted) return;
+            if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
+            if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
+        });
 
-            normalizeSpeed();
-        }
+        gameLoop();
+    </script>
+</body>
+</html>
 
-        function handleKeyUp(event) {
-            if (!gameStarted) return; // Do not handle input if the game hasn't started
-
-            if (['w', 'a', 's', 'd'].includes(event.key)) {
-                if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
-                if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
-            }
-
-            normalizeSpeed();
-        }
-
-        // Dash function
-        function dash() {
-            const currentTime = Date.now();
-            // Check if enough time has passed since the last dash
-            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
-                playerBall.isDashing = true; // Set dash state to true
-                playerBall.lastDashTime = currentTime; // Update last dash time
-                playerBall.dashTime = currentTime; // Start dash time
-                playerBall.dashDirection = { dx: playerBall.dx, dy: playerBall.dy }; // Dash in the same direction as movement
-
-                // Dash in the current movement
