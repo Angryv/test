@@ -21,10 +21,6 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas to fullscreen
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
         // Ball properties
         const playerBall = {
             x: canvas.width / 4,
@@ -32,11 +28,11 @@
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 30, // Dash distance (2x the normal speed)
+            dashSpeed: 40, // Dash distance
             dx: 0,
             dy: 0,
             isDashing: false, // Flag for whether the player is dashing
-            dashCooldown: 2000, // 2 seconds cooldown
+            dashCooldown: 1800, // 1.8 seconds cooldown
             lastDashTime: 0, // Last time the player dashed
             dashTime: 0, // Time when dash started
             dashDirection: { dx: 0, dy: 0 } // Store dash direction for animation
@@ -203,6 +199,20 @@
             mouseY = event.clientY;
         });
 
+        // Adjust canvas size on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Reposition player ball after resizing (optional)
+            playerBall.x = canvas.width / 4;
+            playerBall.y = canvas.height / 2;
+
+            // Reposition opponent ball
+            opponentBall.x = Math.random() * canvas.width;
+            opponentBall.y = Math.random() * canvas.height;
+        });
+
         // Game loop
         function gameLoop() {
             update();
@@ -235,3 +245,4 @@
     </script>
 </body>
 </html>
+
