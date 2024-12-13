@@ -13,7 +13,7 @@
         canvas {
             display: block;
         }
-        #menu {
+        #menu, #pauseMenu {
             position: absolute;
             top: 0;
             left: 0;
@@ -25,7 +25,7 @@
             justify-content: center;
             z-index: 10;
         }
-        #menu button {
+        #menu button, #pauseMenu button {
             padding: 20px 40px;
             font-size: 24px;
             font-weight: bold;
@@ -35,8 +35,11 @@
             border-radius: 10px;
             cursor: pointer;
         }
-        #menu button:hover {
+        #menu button:hover, #pauseMenu button:hover {
             background-color: darkblue;
+        }
+        #pauseMenu {
+            display: none; /* Hidden by default */
         }
     </style>
 </head>
@@ -44,12 +47,17 @@
     <div id="menu">
         <button id="startButton">Start</button>
     </div>
+    <div id="pauseMenu">
+        <button id="continueButton">Continue</button>
+    </div>
     <canvas id="gameCanvas"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const menu = document.getElementById('menu');
+        const pauseMenu = document.getElementById('pauseMenu');
         const startButton = document.getElementById('startButton');
+        const continueButton = document.getElementById('continueButton');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -90,14 +98,21 @@
         let mouseX = 0;
         let mouseY = 0;
         let gameStarted = false;
+        let gamePaused = false;
 
         startButton.addEventListener('click', () => {
-            menu.style.display = 'none'; // Hide the menu
-            gameStarted = true;          // Start the game
+            menu.style.display = 'none';
+            gameStarted = true;
+            gamePaused = false;
+        });
+
+        continueButton.addEventListener('click', () => {
+            pauseMenu.style.display = 'none';
+            gamePaused = false;
         });
 
         function update() {
-            if (!gameStarted) return;
+            if (!gameStarted || gamePaused) return;
 
             playerBall.x += playerBall.dx;
             playerBall.y += playerBall.dy;
@@ -146,7 +161,7 @@
         }
 
         function drawGun() {
-            if (!gameStarted) return;
+            if (!gameStarted || gamePaused) return;
 
             const dx = mouseX - playerBall.x;
             const dy = mouseY - playerBall.y;
@@ -169,15 +184,13 @@
             mouseY = event.clientY;
         });
 
-        function gameLoop() {
-            update();
-            drawBalls();
-            drawGun();
-            requestAnimationFrame(gameLoop);
-        }
-
         window.addEventListener('keydown', (event) => {
-            if (!gameStarted) return;
+            if (event.key === 'Escape') {
+                gamePaused = !gamePaused;
+                pauseMenu.style.display = gamePaused ? 'flex' : 'none';
+            }
+            if (!gameStarted || gamePaused) return;
+
             if (event.key === 'w') playerBall.dy = -playerBall.speed;
             if (event.key === 'a') playerBall.dx = -playerBall.speed;
             if (event.key === 's') playerBall.dy = playerBall.speed;
@@ -185,13 +198,21 @@
         });
 
         window.addEventListener('keyup', (event) => {
-            if (!gameStarted) return;
+            if (!gameStarted || gamePaused) return;
             if (event.key === 'w' || event.key === 's') playerBall.dy = 0;
             if (event.key === 'a' || event.key === 'd') playerBall.dx = 0;
         });
+
+        function gameLoop() {
+            update();
+            drawBalls();
+            drawGun();
+            requestAnimationFrame(gameLoop);
+        }
 
         gameLoop();
     </script>
 </body>
 </html>
+
 
