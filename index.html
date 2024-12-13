@@ -32,8 +32,12 @@
             radius: 20,
             color: 'blue',
             speed: 5,
+            dashSpeed: 15, // Speed during dash
             dx: 0,
-            dy: 0
+            dy: 0,
+            isDashing: false, // Flag for whether the player is dashing
+            dashCooldown: 3000, // 3 seconds cooldown
+            lastDashTime: 0 // Last time the player dashed
         };
 
         const opponentBall = {
@@ -189,6 +193,10 @@
             if (event.key === 's') playerBall.dy = playerBall.speed;
             if (event.key === 'd') playerBall.dx = playerBall.speed;
 
+            if (event.key === 'Shift' && !playerBall.isDashing) {
+                dash(); // Perform the dash if not already dashing
+            }
+
             normalizeSpeed();
         }
 
@@ -199,6 +207,25 @@
             }
 
             normalizeSpeed();
+        }
+
+        // Dash function
+        function dash() {
+            const currentTime = Date.now();
+            // Check if enough time has passed since the last dash
+            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
+                playerBall.isDashing = true; // Set dash state to true
+                playerBall.lastDashTime = currentTime; // Update last dash time
+
+                // Dash in the direction the player is moving
+                playerBall.x += playerBall.dx * playerBall.dashSpeed;
+                playerBall.y += playerBall.dy * playerBall.dashSpeed;
+
+                // Reset dash flag after a small period
+                setTimeout(() => {
+                    playerBall.isDashing = false;
+                }, 100); // Dash lasts for a very short time (100ms)
+            }
         }
 
         // Normalize speed to ensure diagonal movement does not exceed normal speed
@@ -236,4 +263,5 @@
     </script>
 </body>
 </html>
+
 
