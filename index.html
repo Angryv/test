@@ -36,9 +36,10 @@
             dx: 0,
             dy: 0,
             isDashing: false, // Flag for whether the player is dashing
-            dashCooldown: 3000, // 3 seconds cooldown
+            dashCooldown: 2000, // 2 seconds cooldown
             lastDashTime: 0, // Last time the player dashed
-            dashTime: 0 // Time when dash started
+            dashTime: 0, // Time when dash started
+            dashDirection: { dx: 0, dy: 0 } // Store dash direction for animation
         };
 
         const opponentBall = {
@@ -218,10 +219,11 @@
                 playerBall.isDashing = true; // Set dash state to true
                 playerBall.lastDashTime = currentTime; // Update last dash time
                 playerBall.dashTime = currentTime; // Start dash time
+                playerBall.dashDirection = { dx: -playerBall.dx, dy: -playerBall.dy }; // Dash in the opposite direction
 
-                // Dash in the direction the player is moving
-                playerBall.x += playerBall.dx * playerBall.dashSpeed;
-                playerBall.y += playerBall.dy * playerBall.dashSpeed;
+                // Dash in the opposite direction
+                playerBall.x += playerBall.dashDirection.dx * playerBall.dashSpeed;
+                playerBall.y += playerBall.dashDirection.dy * playerBall.dashSpeed;
 
                 // Reset dash flag after a short period (100ms for smooth animation)
                 setTimeout(() => {
@@ -254,15 +256,16 @@
             drawBalls();
             drawGun(); // Draw the gun
 
-            // Animation effect for dash: Show a trail or a line while dashing
+            // Animation effect for dash: Show a trail or a line while dashing (in the opposite direction)
             if (playerBall.isDashing) {
                 const dashDuration = Date.now() - playerBall.dashTime;
                 if (dashDuration < 100) {
                     ctx.beginPath();
                     ctx.moveTo(playerBall.x, playerBall.y);
-                    ctx.lineTo(playerBall.x + playerBall.dx * playerBall.dashSpeed, playerBall.y + playerBall.dy * playerBall.dashSpeed);
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = 'cyan'; // Color for dash trail
+                    ctx.lineTo(playerBall.x + playerBall.dashDirection.dx * playerBall.dashSpeed, 
+                               playerBall.y + playerBall.dashDirection.dy * playerBall.dashSpeed);
+                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = 'purple';
                     ctx.stroke();
                     ctx.closePath();
                 }
@@ -275,11 +278,8 @@
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
-        // Start the game
+        // Start the game loop
         gameLoop();
     </script>
 </body>
 </html>
-
-
-
