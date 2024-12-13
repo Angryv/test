@@ -32,12 +32,13 @@
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 15, // Speed during dash
+            dashSpeed: 30, // Dash distance (2x the normal speed)
             dx: 0,
             dy: 0,
             isDashing: false, // Flag for whether the player is dashing
             dashCooldown: 3000, // 3 seconds cooldown
-            lastDashTime: 0 // Last time the player dashed
+            lastDashTime: 0, // Last time the player dashed
+            dashTime: 0 // Time when dash started
         };
 
         const opponentBall = {
@@ -216,15 +217,16 @@
             if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
                 playerBall.isDashing = true; // Set dash state to true
                 playerBall.lastDashTime = currentTime; // Update last dash time
+                playerBall.dashTime = currentTime; // Start dash time
 
                 // Dash in the direction the player is moving
                 playerBall.x += playerBall.dx * playerBall.dashSpeed;
                 playerBall.y += playerBall.dy * playerBall.dashSpeed;
 
-                // Reset dash flag after a small period
+                // Reset dash flag after a short period (100ms for smooth animation)
                 setTimeout(() => {
                     playerBall.isDashing = false;
-                }, 100); // Dash lasts for a very short time (100ms)
+                }, 100);
             }
         }
 
@@ -251,6 +253,21 @@
             update();
             drawBalls();
             drawGun(); // Draw the gun
+
+            // Animation effect for dash: Show a trail or a line while dashing
+            if (playerBall.isDashing) {
+                const dashDuration = Date.now() - playerBall.dashTime;
+                if (dashDuration < 100) {
+                    ctx.beginPath();
+                    ctx.moveTo(playerBall.x, playerBall.y);
+                    ctx.lineTo(playerBall.x + playerBall.dx * playerBall.dashSpeed, playerBall.y + playerBall.dy * playerBall.dashSpeed);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'cyan'; // Color for dash trail
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+
             requestAnimationFrame(gameLoop);
         }
 
@@ -263,5 +280,6 @@
     </script>
 </body>
 </html>
+
 
 
