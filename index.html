@@ -13,7 +13,7 @@
         canvas {
             display: block;
         }
-        #menu, #pauseMenu {
+        #menu, #pauseMenu, #gameOverMenu {
             position: absolute;
             top: 0;
             left: 0;
@@ -25,7 +25,7 @@
             justify-content: center;
             z-index: 10;
         }
-        #menu button, #pauseMenu button {
+        #menu button, #pauseMenu button, #gameOverMenu button {
             padding: 20px 40px;
             font-size: 24px;
             font-weight: bold;
@@ -35,10 +35,10 @@
             border-radius: 10px;
             cursor: pointer;
         }
-        #menu button:hover, #pauseMenu button:hover {
+        #menu button:hover, #pauseMenu button:hover, #gameOverMenu button:hover {
             background-color: darkblue;
         }
-        #pauseMenu {
+        #pauseMenu, #gameOverMenu {
             display: none;
         }
     </style>
@@ -50,14 +50,19 @@
     <div id="pauseMenu">
         <button id="continueButton">Continue</button>
     </div>
+    <div id="gameOverMenu">
+        <button id="restartButton">Restart</button>
+    </div>
     <canvas id="gameCanvas"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const menu = document.getElementById('menu');
         const pauseMenu = document.getElementById('pauseMenu');
+        const gameOverMenu = document.getElementById('gameOverMenu');
         const startButton = document.getElementById('startButton');
         const continueButton = document.getElementById('continueButton');
+        const restartButton = document.getElementById('restartButton');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -77,8 +82,8 @@
         };
 
         const opponentBall = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            x: 0,
+            y: 0,
             radius: 20,
             color: 'red',
             speed: 1,
@@ -99,12 +104,14 @@
         let mouseY = canvas.height / 2;
         let gameStarted = false;
         let gamePaused = false;
+        let gameOver = false;
         const keys = { w: false, a: false, s: false, d: false, shift: false };
 
         startButton.addEventListener('click', () => {
             menu.style.display = 'none';
             gameStarted = true;
             gamePaused = false;
+            gameOver = false;
             gameLoop();
         });
 
@@ -117,8 +124,20 @@
             gamePaused = false;
         });
 
+        restartButton.addEventListener('click', () => {
+            gameOverMenu.style.display = 'none';
+            playerBall.x = canvas.width / 4;
+            playerBall.y = canvas.height / 2;
+            opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
+            opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
+            bullets.length = 0;
+            gameStarted = true;
+            gameOver = false;
+            gameLoop();
+        });
+
         function update() {
-            if (!gameStarted || gamePaused) return;
+            if (!gameStarted || gamePaused || gameOver) return;
 
             // Update movement based on WASD keys
             playerBall.dx = 0;
@@ -148,6 +167,7 @@
             if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
 
             moveOpponentBall();
+            checkCollision();
             updateBullets();
             updateAfterimages();
         }
@@ -169,6 +189,16 @@
             if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
             if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
             if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
+        }
+
+        function checkCollision() {
+            const dx = playerBall.x - opponentBall.x;
+            const dy = playerBall.y - opponentBall.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < playerBall.radius + opponentBall.radius) {
+                gameOver = true;
+                gameOverMenu.style.display = 'flex';
+            }
         }
 
         function drawBalls() {
@@ -198,11 +228,10 @@
             ctx.closePath();
 
             drawGun();
-            drawBullets();  // Drawing the bullets in the game loop
         }
 
         function drawGun() {
-            if (!gameStarted || gamePaused) return;
+            if (!gameStarted || gamePaused || gameOver) return;
 
             const dx = mouseX - playerBall.x;
             const dy = mouseY - playerBall.y;
@@ -304,19 +333,17 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance < bulletRadius + opponentBall.radius) {
                     // Destroy opponent ball
-                    opponentBall.x = Math.random() * canvas.width;
-                    opponentBall.y = Math.random() * canvas.height;
+                    opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
+                    opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
                     bullets.splice(i, 1);
                 }
             }
-        }
 
-        // Drawing bullets in the game loop
-        function drawBullets() {
+            // Draw bullets
             bullets.forEach((bullet) => {
                 ctx.beginPath();
                 ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'orange';  // Bullet color
+                ctx.fillStyle = 'orange';
                 ctx.fill();
                 ctx.closePath();
             });
@@ -360,7 +387,7 @@
         });
 
         function gameLoop() {
-            if (!gamePaused) {
+            if (!gamePaused && !gameOver) {
                 update();
                 drawBalls();
                 dash();
@@ -368,7 +395,30 @@
             requestAnimationFrame(gameLoop);
         }
 
-        gameLoop();
+        // Initialize the opponent ball at a random edge
+        function spawnOpponentBall() {
+            const edge = Math.floor(Math.random() * 4);
+            switch (edge) {
+                case 0: // Top edge
+                    opponentBall.x = Math.random() * canvas.width;
+                    opponentBall.y = 0;
+                    break;
+                case 1: // Bottom edge
+                    opponentBall.x = Math.random() * canvas.width;
+                    opponentBall.y = canvas.height;
+                    break;
+                case 2: // Left edge
+                    opponentBall.x = 0;
+                    opponentBall.y = Math.random() * canvas.height;
+                    break;
+                case 3: // Right edge
+                    opponentBall.x = canvas.width;
+                    opponentBall.y = Math.random() * canvas.height;
+                    break;
+            }
+        }
+
+        spawnOpponentBall();  // Spawn opponent when the game starts
     </script>
 </body>
 </html>
