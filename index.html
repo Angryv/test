@@ -105,6 +105,8 @@
         let gameStarted = false;
         let gamePaused = false;
         let gameOver = false;
+        let score = 0; // Score variable
+
         const keys = { w: false, a: false, s: false, d: false, shift: false };
 
         startButton.addEventListener('click', () => {
@@ -112,6 +114,7 @@
             gameStarted = true;
             gamePaused = false;
             gameOver = false;
+            score = 0; // Reset score when game starts
             gameLoop();
         });
 
@@ -127,6 +130,7 @@
         restartButton.addEventListener('click', () => {
             gameOverMenu.style.display = 'none';
             resetGame();
+            score = 0; // Reset score on game restart
             gameLoop();
         });
 
@@ -343,8 +347,17 @@
                     opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
                     opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
                     bullets.splice(i, 1);
+
+                    // Increase score by 10 when opponent is hit
+                    score += 10;
                 }
             }
+        }
+
+        function drawScore() {
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'black';
+            ctx.fillText(`Score: ${score}`, canvas.width - 150, 50);
         }
 
         document.addEventListener('keydown', (e) => {
@@ -383,29 +396,13 @@
             // Draw bullets after updating them
             drawBullets();  // This function is now called to draw all the bullets on the canvas
 
-            if (!gameOver) {
-                requestAnimationFrame(gameLoop);
-            }
+            // Draw the score
+            drawScore();
+
+            // Continue the loop
+            requestAnimationFrame(gameLoop);
         }
 
-        function drawBullets() {
-            bullets.forEach((bullet) => {
-                ctx.beginPath();
-                ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'orange';
-                ctx.fill();
-                ctx.closePath();
-            });
-        }
-
-        // Start the game
-        function startGame() {
-            menu.style.display = 'none';
-            gameStarted = true;
-            gamePaused = false;
-            gameOver = false;
-            gameLoop();
-        }
     </script>
 </body>
 </html>
