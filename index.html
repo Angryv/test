@@ -198,6 +198,7 @@
             ctx.closePath();
 
             drawGun();
+            drawBullets();  // Drawing the bullets in the game loop
         }
 
         function drawGun() {
@@ -308,12 +309,14 @@
                     bullets.splice(i, 1);
                 }
             }
+        }
 
-            // Draw bullets
+        // Drawing bullets in the game loop
+        function drawBullets() {
             bullets.forEach((bullet) => {
                 ctx.beginPath();
                 ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'orange';
+                ctx.fillStyle = 'orange';  // Bullet color
                 ctx.fill();
                 ctx.closePath();
             });
