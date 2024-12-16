@@ -73,12 +73,8 @@
             radius: 20,
             color: 'blue',
             speed: 5,
-            dashSpeed: 40,
             dx: 0,
             dy: 0,
-            isDashing: false,
-            dashCooldown: 1800,
-            lastDashTime: 0
         };
 
         const opponentBall = {
@@ -96,9 +92,6 @@
         const bulletRadius = 5;
         let lastBulletTime = 0;
         const bulletCooldown = 300; // milliseconds
-
-        const afterimages = [];
-        const afterimageLifetime = 150; // in milliseconds
 
         let mouseX = canvas.width / 2;
         let mouseY = canvas.height / 2;
@@ -177,7 +170,6 @@
             moveOpponentBall();
             checkCollision();
             updateBullets();
-            updateAfterimages();
         }
 
         function moveOpponentBall() {
@@ -212,23 +204,14 @@
         function drawBalls() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw afterimages
-            afterimages.forEach(({ x, y, radius, opacity }) => {
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
-                ctx.fill();
-                ctx.closePath();
-            });
-
-            // Player ball
+            // Draw player ball
             ctx.beginPath();
             ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = playerBall.color;
             ctx.fill();
             ctx.closePath();
 
-            // Opponent ball
+            // Draw opponent ball
             ctx.beginPath();
             ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = opponentBall.color;
@@ -255,49 +238,6 @@
             ctx.strokeStyle = 'black';
             ctx.stroke();
             ctx.closePath();
-        }
-
-        function dash() {
-            const currentTime = Date.now();
-            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown && keys.shift) {
-                playerBall.isDashing = true;
-                playerBall.lastDashTime = currentTime;
-
-                const dashX = playerBall.x + playerBall.dx * playerBall.dashSpeed;
-                const dashY = playerBall.y + playerBall.dy * playerBall.dashSpeed;
-
-                createAfterimages(playerBall.x, playerBall.y, dashX, dashY);
-
-                playerBall.x = dashX;
-                playerBall.y = dashY;
-
-                setTimeout(() => {
-                    playerBall.isDashing = false;
-                }, 100);
-            }
-        }
-
-        function createAfterimages(startX, startY, endX, endY) {
-            const steps = 10;
-            for (let i = 0; i < steps; i++) {
-                const t = i / steps;
-                afterimages.push({
-                    x: startX + t * (endX - startX),
-                    y: startY + t * (endY - startY),
-                    radius: playerBall.radius,
-                    opacity: 1 - t,
-                    timestamp: Date.now()
-                });
-            }
-        }
-
-        function updateAfterimages() {
-            const currentTime = Date.now();
-            for (let i = afterimages.length - 1; i >= 0; i--) {
-                if (currentTime - afterimages[i].timestamp > afterimageLifetime) {
-                    afterimages.splice(i, 1);
-                }
-            }
         }
 
         function shootBullet() {
@@ -341,8 +281,7 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance < bulletRadius + opponentBall.radius) {
                     // Destroy opponent ball
-                    opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
-                    opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
+                    spawnOpponentBall();
                     bullets.splice(i, 1);
                 }
             }
@@ -387,18 +326,12 @@
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-
-            if (canvas.width < 800 || canvas.height < 600) {
-                pauseMenu.style.display = 'flex';
-                gamePaused = true;
-            }
         });
 
         function gameLoop() {
             if (!gamePaused && !gameOver) {
                 update();
                 drawBalls();
-                dash();
             }
             requestAnimationFrame(gameLoop);
         }
