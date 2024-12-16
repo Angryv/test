@@ -89,6 +89,8 @@
         const afterimages = [];
         const afterimageLifetime = 300; // in milliseconds
 
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
         let gameStarted = false;
         let gamePaused = false;
         const keys = { w: false, a: false, s: false, d: false, shift: false };
@@ -183,6 +185,27 @@
             ctx.fillStyle = opponentBall.color;
             ctx.fill();
             ctx.closePath();
+
+            drawGun();
+        }
+
+        function drawGun() {
+            if (!gameStarted || gamePaused) return;
+
+            const dx = mouseX - playerBall.x;
+            const dy = mouseY - playerBall.y;
+            const angle = Math.atan2(dy, dx);
+
+            const gunX = playerBall.x + Math.cos(angle) * playerBall.radius;
+            const gunY = playerBall.y + Math.sin(angle) * playerBall.radius;
+
+            ctx.beginPath();
+            ctx.moveTo(gunX, gunY);
+            ctx.lineTo(gunX + Math.cos(angle) * 24, gunY + Math.sin(angle) * 24);
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+            ctx.closePath();
         }
 
         function dash() {
@@ -228,24 +251,35 @@
             }
         }
 
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'w') keys.w = true;
-            if (event.key === 'a') keys.a = true;
-            if (event.key === 's') keys.s = true;
-            if (event.key === 'd') keys.d = true;
-            if (event.key === 'Shift') keys.shift = true;
-            if (event.key === 'Escape') {
-                gamePaused = true;
-                pauseMenu.style.display = 'flex';
-            }
+        function gameLoop() {
+            if (!gameStarted || gamePaused) return;
+
+            update();
+            drawBalls();
+            dash();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'w') keys.w = true;
+            if (e.key === 'a') keys.a = true;
+            if (e.key === 's') keys.s = true;
+            if (e.key === 'd') keys.d = true;
+            if (e.key === 'Shift') keys.shift = true;
         });
 
-        window.addEventListener('keyup', (event) => {
-            if (event.key === 'w') keys.w = false;
-            if (event.key === 'a') keys.a = false;
-            if (event.key === 's') keys.s = false;
-            if (event.key === 'd') keys.d = false;
-            if (event.key === 'Shift') keys.shift = false;
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'w') keys.w = false;
+            if (e.key === 'a') keys.a = false;
+            if (e.key === 's') keys.s = false;
+            if (e.key === 'd') keys.d = false;
+            if (e.key === 'Shift') keys.shift = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
         });
 
         window.addEventListener('resize', () => {
@@ -253,12 +287,12 @@
             canvas.height = window.innerHeight;
         });
 
-        function gameLoop() {
-            update();
-            drawBalls();
-            dash();
-            requestAnimationFrame(gameLoop);
-        }
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                gamePaused = !gamePaused;
+                pauseMenu.style.display = gamePaused ? 'flex' : 'none';
+            }
+        });
     </script>
 </body>
 </html>
