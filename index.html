@@ -345,50 +345,8 @@
                     bullets.splice(i, 1);
                 }
             }
-        }
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'w') keys.w = true;
-            if (e.key === 'a') keys.a = true;
-            if (e.key === 's') keys.s = true;
-            if (e.key === 'd') keys.d = true;
-            if (e.key === 'Shift') keys.shift = true;
-            if (e.key === ' ') shootBullet();
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'w') keys.w = false;
-            if (e.key === 'a') keys.a = false;
-            if (e.key === 's') keys.s = false;
-            if (e.key === 'd') keys.d = false;
-            if (e.key === 'Shift') keys.shift = false;
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
-
-        function gameLoop() {
-            if (!gameStarted || gamePaused || gameOver) return;
-
-            // Update movement, opponent, and bullet logic
-            update();
-            dash();
-            updateBullets();  // Ensure this is called in the game loop to update bullet positions
-
-            // Draw balls (player and opponent)
-            drawBalls();
-
-            // Draw bullets after updating them
-            drawBullets();  // This function is now called to draw all the bullets on the canvas
-
-            if (!gameOver) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
-        function drawBullets() {
+            // Draw bullets
             bullets.forEach((bullet) => {
                 ctx.beginPath();
                 ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
@@ -398,13 +356,53 @@
             });
         }
 
-        // Start the game
-        function startGame() {
-            menu.style.display = 'none';
-            gameStarted = true;
-            gamePaused = false;
-            gameOver = false;
-            gameLoop();
+        window.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'w') keys.w = true;
+            if (event.key === 'a') keys.a = true;
+            if (event.key === 's') keys.s = true;
+            if (event.key === 'd') keys.d = true;
+            if (event.key === 'Shift') keys.shift = true;
+        });
+
+        window.addEventListener('keyup', (event) => {
+            if (event.key === 'w') keys.w = false;
+            if (event.key === 'a') keys.a = false;
+            if (event.key === 's') keys.s = false;
+            if (event.key === 'd') keys.d = false;
+            if (event.key === 'Shift') keys.shift = false;
+        });
+
+        window.addEventListener('mousedown', (event) => {
+            if (event.button === 0) {
+                shootBullet();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            if (canvas.width < 800 || canvas.height < 600) {
+                pauseMenu.style.display = 'flex';
+                gamePaused = true;
+            }
+        });
+
+        function gameLoop() {
+            if (!gameStarted) return;
+
+            update();
+            drawBalls();
+            dash();
+
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
         }
     </script>
 </body>
