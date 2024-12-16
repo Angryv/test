@@ -112,6 +112,7 @@
             gameStarted = true;
             gamePaused = false;
             gameOver = false;
+            resetGame();
             gameLoop();
         });
 
@@ -126,15 +127,22 @@
 
         restartButton.addEventListener('click', () => {
             gameOverMenu.style.display = 'none';
-            playerBall.x = canvas.width / 4;
-            playerBall.y = canvas.height / 2;
-            opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
-            opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
-            bullets.length = 0;
+            resetGame();
             gameStarted = true;
             gameOver = false;
             gameLoop();
         });
+
+        function resetGame() {
+            playerBall.x = canvas.width / 4;
+            playerBall.y = canvas.height / 2;
+            playerBall.dx = 0;
+            playerBall.dy = 0;
+
+            opponentBall.speed = 1;  // Reset speed to initial value
+            spawnOpponentBall(); // Spawn opponent ball at random edge
+            bullets.length = 0; // Reset bullets array
+        }
 
         function update() {
             if (!gameStarted || gamePaused || gameOver) return;
@@ -417,8 +425,6 @@
                     break;
             }
         }
-
-        spawnOpponentBall();  // Spawn opponent when the game starts
     </script>
 </body>
 </html>
