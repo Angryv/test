@@ -107,6 +107,14 @@
             gamePaused = false;
         });
 
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gamePaused = true;
+            pauseMenu.style.display = 'flex';
+            alert('Please resize to full screen to continue playing.');
+        });
+
         function update() {
             if (!gameStarted || gamePaused) return;
 
@@ -243,56 +251,9 @@
         }
 
         function updateAfterimages() {
-            const currentTime = Date.now();
-            for (let i = afterimages.length - 1; i >= 0; i--) {
-                if (currentTime - afterimages[i].timestamp > afterimageLifetime) {
-                    afterimages.splice(i, 1);
-                }
-            }
         }
 
-        function gameLoop() {
-            if (!gameStarted || gamePaused) return;
-
-            update();
-            drawBalls();
-            dash();
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'w') keys.w = true;
-            if (e.key === 'a') keys.a = true;
-            if (e.key === 's') keys.s = true;
-            if (e.key === 'd') keys.d = true;
-            if (e.key === 'Shift') keys.shift = true;
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'w') keys.w = false;
-            if (e.key === 'a') keys.a = false;
-            if (e.key === 's') keys.s = false;
-            if (e.key === 'd') keys.d = false;
-            if (e.key === 'Shift') keys.shift = false;
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                gamePaused = !gamePaused;
-                pauseMenu.style.display = gamePaused ? 'flex' : 'none';
-            }
-        });
     </script>
 </body>
 </html>
+
