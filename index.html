@@ -404,6 +404,66 @@
                 requestAnimationFrame(gameLoop);
             }
         }
+         function gameLoop() {
+        if (!gameStarted) return;
+
+        // Update movement, opponent, and bullet logic
+        update();
+        dash();
+        updateBullets();  // Ensure this is called in the game loop to update bullet positions
+
+        // Draw balls (player and opponent)
+        drawBalls();
+
+        // Draw bullets after updating them
+        drawBullets();  // We will call this to draw all the bullets on the canvas
+
+        if (!gameOver) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // Function to draw bullets separately (called after updating bullets)
+    function drawBullets() {
+        bullets.forEach((bullet) => {
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'orange';
+            ctx.fill();
+            ctx.closePath();
+        });
+    }
+
+    // Function to update the bullets (e.g., moving and collision)
+    function updateBullets() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
+            bullet.x += bullet.dx;
+            bullet.y += bullet.dy;
+
+            // Remove bullets that go out of bounds
+            if (
+                bullet.x < 0 ||
+                bullet.x > canvas.width ||
+                bullet.y < 0 ||
+                bullet.y > canvas.height
+            ) {
+                bullets.splice(i, 1);
+                continue;
+            }
+
+            // Check collision with opponent ball
+            const dx = bullet.x - opponentBall.x;
+            const dy = bullet.y - opponentBall.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < bulletRadius + opponentBall.radius) {
+                // Destroy opponent ball
+                opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
+                opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
+                bullets.splice(i, 1);
+            }
+        }
+    }
     </script>
 </body>
 </html>
