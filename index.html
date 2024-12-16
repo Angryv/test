@@ -73,8 +73,7 @@
             dy: 0,
             isDashing: false,
             dashCooldown: 1800,
-            lastDashTime: 0,
-            dashDirection: { dx: 0, dy: 0 },
+            lastDashTime: 0
         };
 
         const opponentBall = {
@@ -84,31 +83,47 @@
             color: 'red',
             speed: 1,
             dx: 0,
-            dy: 0,
+            dy: 0
         };
 
         const afterimages = [];
         const afterimageLifetime = 300; // in milliseconds
 
-        let mouseX = 0;
-        let mouseY = 0;
         let gameStarted = false;
         let gamePaused = false;
+        const keys = { w: false, a: false, s: false, d: false, shift: false };
 
         startButton.addEventListener('click', () => {
-            menu.style.display = 'none'; // Hide the menu when the game starts
+            menu.style.display = 'none';
             gameStarted = true;
             gamePaused = false;
-            gameLoop(); // Start the game loop
+            gameLoop();
         });
 
         continueButton.addEventListener('click', () => {
-            pauseMenu.style.display = 'none'; // Hide the pause menu
+            pauseMenu.style.display = 'none';
             gamePaused = false;
         });
 
         function update() {
             if (!gameStarted || gamePaused) return;
+
+            // Update movement based on WASD keys
+            playerBall.dx = 0;
+            playerBall.dy = 0;
+            if (keys.w) playerBall.dy = -playerBall.speed;
+            if (keys.s) playerBall.dy = playerBall.speed;
+            if (keys.a) playerBall.dx = -playerBall.speed;
+            if (keys.d) playerBall.dx = playerBall.speed;
+
+            // Normalize diagonal movement
+            const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
+            if (magnitude > 0) {
+                playerBall.dx /= magnitude;
+                playerBall.dy /= magnitude;
+                playerBall.dx *= playerBall.speed;
+                playerBall.dy *= playerBall.speed;
+            }
 
             // Update position
             playerBall.x += playerBall.dx;
@@ -170,28 +185,9 @@
             ctx.closePath();
         }
 
-        function drawGun() {
-            if (!gameStarted || gamePaused) return;
-
-            const dx = mouseX - playerBall.x;
-            const dy = mouseY - playerBall.y;
-            const angle = Math.atan2(dy, dx);
-
-            const gunX = playerBall.x + Math.cos(angle) * playerBall.radius;
-            const gunY = playerBall.y + Math.sin(angle) * playerBall.radius;
-
-            ctx.beginPath();
-            ctx.moveTo(gunX, gunY);
-            ctx.lineTo(gunX + Math.cos(angle) * 24, gunY + Math.sin(angle) * 24);
-            ctx.lineWidth = 12;
-            ctx.strokeStyle = 'black';
-            ctx.stroke();
-            ctx.closePath();
-        }
-
         function dash() {
             const currentTime = Date.now();
-            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
+            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown && keys.shift) {
                 playerBall.isDashing = true;
                 playerBall.lastDashTime = currentTime;
 
@@ -218,7 +214,7 @@
                     y: startY + t * (endY - startY),
                     radius: playerBall.radius,
                     opacity: 1 - t,
-                    timestamp: Date.now(),
+                    timestamp: Date.now()
                 });
             }
         }
@@ -232,27 +228,24 @@
             }
         }
 
-        window.addEventListener('mousemove', (event) => {
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-
-            // Normalize movement direction
-            const dx = mouseX - playerBall.x;
-            const dy = mouseY - playerBall.y;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            if (length !== 0) {
-                playerBall.dx = (dx / length) * playerBall.speed;
-                playerBall.dy = (dy / length) * playerBall.speed;
-            }
-        });
-
         window.addEventListener('keydown', (event) => {
-            if (event.key === ' ') {
-                dash();
-            } else if (event.key === 'Escape') {
+            if (event.key === 'w') keys.w = true;
+            if (event.key === 'a') keys.a = true;
+            if (event.key === 's') keys.s = true;
+            if (event.key === 'd') keys.d = true;
+            if (event.key === 'Shift') keys.shift = true;
+            if (event.key === 'Escape') {
                 gamePaused = true;
                 pauseMenu.style.display = 'flex';
             }
+        });
+
+        window.addEventListener('keyup', (event) => {
+            if (event.key === 'w') keys.w = false;
+            if (event.key === 'a') keys.a = false;
+            if (event.key === 's') keys.s = false;
+            if (event.key === 'd') keys.d = false;
+            if (event.key === 'Shift') keys.shift = false;
         });
 
         window.addEventListener('resize', () => {
@@ -263,10 +256,9 @@
         function gameLoop() {
             update();
             drawBalls();
-            drawGun();
+            dash();
             requestAnimationFrame(gameLoop);
         }
     </script>
 </body>
 </html>
-
