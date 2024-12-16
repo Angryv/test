@@ -464,6 +464,93 @@
             }
         }
     }
+        // Add a new score variable
+    let score = 0;
+
+    // Update the game loop to draw the score
+    function gameLoop() {
+        if (!gameStarted) return;
+
+        // Update movement, opponent, and bullet logic
+        update();
+        dash();
+        updateBullets();  // Ensure this is called in the game loop to update bullet positions
+
+        // Draw balls (player and opponent)
+        drawBalls();
+
+        // Draw bullets after updating them
+        drawBullets();  // We will call this to draw all the bullets on the canvas
+
+        // Draw the score
+        drawScore();
+
+        if (!gameOver) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // Function to draw the score on the top-right corner
+    function drawScore() {
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'black';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Score: ${score}`, canvas.width - 20, 40); // 20px padding from the right edge
+    }
+
+    // Function to update the score periodically every 2 seconds
+    setInterval(() => {
+        if (gameStarted && !gameOver) {
+            score += 10;
+        }
+    }, 2000); // Update every 2 seconds
+
+    // Function to handle opponent death and increase score
+    function checkCollision() {
+        const dx = playerBall.x - opponentBall.x;
+        const dy = playerBall.y - opponentBall.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < playerBall.radius + opponentBall.radius) {
+            gameOver = true;
+            gameOverMenu.style.display = 'flex';
+
+            // Increase score by 100 when opponent is killed
+            score += 100;
+        }
+    }
+
+    // Initialize the opponent ball at a random edge
+    function spawnOpponentBall() {
+        const edge = Math.floor(Math.random() * 4);
+        switch (edge) {
+            case 0: // Top edge
+                opponentBall.x = Math.random() * canvas.width;
+                opponentBall.y = 0;
+                break;
+            case 1: // Bottom edge
+                opponentBall.x = Math.random() * canvas.width;
+                opponentBall.y = canvas.height;
+                break;
+            case 2: // Left edge
+                opponentBall.x = 0;
+                opponentBall.y = Math.random() * canvas.height;
+                break;
+            case 3: // Right edge
+                opponentBall.x = canvas.width;
+                opponentBall.y = Math.random() * canvas.height;
+                break;
+        }
+    }
+
+    // Function to reset the game and opponent position
+    function restartGame() {
+        score = 0;  // Reset the score on game restart
+        spawnOpponentBall(); // Reset opponent ball position
+        // Other reset logic
+    }
+
+    // Spawn opponent on game start
+    spawnOpponentBall();  // Spawn opponent when the game starts
     </script>
 </body>
 </html>
