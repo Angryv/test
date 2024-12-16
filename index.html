@@ -81,16 +81,6 @@
             lastDashTime: 0
         };
 
-        const opponentBall = {
-            x: 0,
-            y: 0,
-            radius: 20,
-            color: 'red',
-            speed: 1,
-            dx: 0,
-            dy: 0
-        };
-
         const bullets = [];
         const bulletSpeed = 10;
         const bulletRadius = 5;
@@ -105,6 +95,9 @@
         let gameStarted = false;
         let gamePaused = false;
         let gameOver = false;
+        let timeElapsed = 0;  // Track time elapsed
+        let enemies = [];     // Array to store enemy balls
+        const maxEnemies = 20; // Maximum number of enemies on screen
         const keys = { w: false, a: false, s: false, d: false, shift: false };
 
         startButton.addEventListener('click', () => {
@@ -112,6 +105,8 @@
             gameStarted = true;
             gamePaused = false;
             gameOver = false;
+            timeElapsed = 0;
+            enemies = []; // Reset enemies
             gameLoop();
         });
 
@@ -135,16 +130,37 @@
             playerBall.y = canvas.height / 2;
             playerBall.dx = 0;
             playerBall.dy = 0;
-            opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
-            opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
-            opponentBall.dx = 0;
-            opponentBall.dy = 0;
             bullets.length = 0; // clear bullets
             gameOver = false;
+            enemies = []; // Clear enemies
+        }
+
+        function spawnEnemies() {
+            // Spawn enemies based on time elapsed
+            const enemyCount = Math.min(Math.floor(timeElapsed / 5000) + 1, maxEnemies);
+            while (enemies.length < enemyCount) {
+                enemies.push(createEnemy());
+            }
+        }
+
+        function createEnemy() {
+            return {
+                x: Math.random() < 0.5 ? 0 : canvas.width,
+                y: Math.random() < 0.5 ? 0 : canvas.height,
+                radius: 20,
+                color: 'red',
+                speed: 1,
+                dx: 0,
+                dy: 0
+            };
         }
 
         function update() {
             if (!gameStarted || gamePaused || gameOver) return;
+
+            // Update time elapsed
+            timeElapsed += 16; // Approximate time per frame in milliseconds
+            spawnEnemies(); // Spawn enemies based on time
 
             // Update movement based on WASD keys
             playerBall.dx = 0;
@@ -173,36 +189,40 @@
             if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
             if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
 
-            moveOpponentBall();
-            checkCollision();
+            enemies.forEach((enemy, index) => {
+                moveEnemy(enemy);
+                checkCollision(enemy);
+            });
+
             updateBullets();
             updateAfterimages();
         }
 
-        function moveOpponentBall() {
-            const dx = playerBall.x - opponentBall.x;
-            const dy = playerBall.y - opponentBall.y;
+        function moveEnemy(enemy) {
+            const dx = playerBall.x - enemy.x;
+            const dy = playerBall.y - enemy.y;
 
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance === 0) return;
 
-            opponentBall.dx = (dx / distance) * opponentBall.speed;
-            opponentBall.dy = (dy / distance) * opponentBall.speed;
+            enemy.dx = (dx / distance) * enemy.speed;
+            enemy.dy = (dy / distance) * enemy.speed;
 
-            opponentBall.x += opponentBall.dx;
-            opponentBall.y += opponentBall.dy;
+            enemy.x += enemy.dx;
+            enemy.y += enemy.dy;
 
-            if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
-            if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
-            if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
-            if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
+            // Prevent enemies from going out of bounds
+            if (enemy.x - enemy.radius < 0) enemy.x = enemy.radius;
+            if (enemy.x + enemy.radius > canvas.width) enemy.x = canvas.width - enemy.radius;
+            if (enemy.y - enemy.radius < 0) enemy.y = enemy.radius;
+            if (enemy.y + enemy.radius > canvas.height) enemy.y = canvas.height - enemy.radius;
         }
 
-        function checkCollision() {
-            const dx = playerBall.x - opponentBall.x;
-            const dy = playerBall.y - opponentBall.y;
+        function checkCollision(enemy) {
+            const dx = playerBall.x - enemy.x;
+            const dy = playerBall.y - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < playerBall.radius + opponentBall.radius) {
+            if (distance < playerBall.radius + enemy.radius) {
                 gameOver = true;
                 gameOverMenu.style.display = 'flex';
             }
@@ -227,12 +247,14 @@
             ctx.fill();
             ctx.closePath();
 
-            // Opponent ball
-            ctx.beginPath();
-            ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
-            ctx.fillStyle = opponentBall.color;
-            ctx.fill();
-            ctx.closePath();
+            // Draw all enemies
+            enemies.forEach(enemy => {
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+                ctx.fillStyle = enemy.color;
+                ctx.fill();
+                ctx.closePath();
+            });
 
             drawGun();
         }
@@ -256,104 +278,13 @@
             ctx.closePath();
         }
 
-        function dash() {
-            const currentTime = Date.now();
-            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown && keys.shift) {
-                playerBall.isDashing = true;
-                playerBall.lastDashTime = currentTime;
-
-                const dashX = playerBall.x + playerBall.dx * playerBall.dashSpeed;
-                const dashY = playerBall.y + playerBall.dy * playerBall.dashSpeed;
-
-                createAfterimages(playerBall.x, playerBall.y, dashX, dashY);
-
-                playerBall.x = dashX;
-                playerBall.y = dashY;
-
-                setTimeout(() => {
-                    playerBall.isDashing = false;
-                }, 100);
-            }
-        }
-
-        function createAfterimages(startX, startY, endX, endY) {
-            const steps = 10;
-            for (let i = 0; i < steps; i++) {
-                const t = i / steps;
-                afterimages.push({
-                    x: startX + t * (endX - startX),
-                    y: startY + t * (endY - startY),
-                    radius: playerBall.radius,
-                    opacity: 1 - t,
-                    timestamp: Date.now()
-                });
-            }
-        }
-
-        function updateAfterimages() {
-            const currentTime = Date.now();
-            for (let i = afterimages.length - 1; i >= 0; i--) {
-                if (currentTime - afterimages[i].timestamp > afterimageLifetime) {
-                    afterimages.splice(i, 1);
-                }
-            }
-        }
-
-        function shootBullet() {
-            const currentTime = Date.now();
-            if (currentTime - lastBulletTime >= bulletCooldown) {
-                lastBulletTime = currentTime;
-
-                const dx = mouseX - playerBall.x;
-                const dy = mouseY - playerBall.y;
-                const angle = Math.atan2(dy, dx);
-
-                bullets.push({
-                    x: playerBall.x + Math.cos(angle) * playerBall.radius,
-                    y: playerBall.y + Math.sin(angle) * playerBall.radius,
-                    dx: Math.cos(angle) * bulletSpeed,
-                    dy: Math.sin(angle) * bulletSpeed
-                });
-            }
-        }
-
-        function updateBullets() {
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                const bullet = bullets[i];
-                bullet.x += bullet.dx;
-                bullet.y += bullet.dy;
-
-                // Remove bullets that go out of bounds
-                if (
-                    bullet.x < 0 ||
-                    bullet.x > canvas.width ||
-                    bullet.y < 0 ||
-                    bullet.y > canvas.height
-                ) {
-                    bullets.splice(i, 1);
-                    continue;
-                }
-
-                // Check collision with opponent ball
-                const dx = bullet.x - opponentBall.x;
-                const dy = bullet.y - opponentBall.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < bulletRadius + opponentBall.radius) {
-                    // Destroy opponent ball
-                    opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
-                    opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
-                    bullets.splice(i, 1);
-                }
-            }
-        }
-
         function gameLoop() {
             if (!gameStarted) return;
 
             update();
             dash();
 
-            // Draw balls (player and opponent)
+            // Draw balls (player and all enemies)
             drawBalls();
 
             // Draw bullets after updating them
@@ -364,7 +295,6 @@
             }
         }
 
-        // Function to draw bullets separately (called after updating bullets)
         function drawBullets() {
             bullets.forEach((bullet) => {
                 ctx.beginPath();
@@ -414,3 +344,4 @@
     </script>
 </body>
 </html>
+
