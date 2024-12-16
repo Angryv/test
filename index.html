@@ -107,6 +107,9 @@
         let gameOver = false;
         const keys = { w: false, a: false, s: false, d: false, shift: false };
 
+        // Score initialization
+        let score = 0;
+
         startButton.addEventListener('click', () => {
             menu.style.display = 'none';
             gameStarted = true;
@@ -126,22 +129,16 @@
 
         restartButton.addEventListener('click', () => {
             gameOverMenu.style.display = 'none';
-            resetGame();
-            gameLoop();
-        });
-
-        function resetGame() {
             playerBall.x = canvas.width / 4;
             playerBall.y = canvas.height / 2;
-            playerBall.dx = 0;
-            playerBall.dy = 0;
             opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
             opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
-            opponentBall.dx = 0;
-            opponentBall.dy = 0;
-            bullets.length = 0; // clear bullets
+            bullets.length = 0;
+            score = 0;  // Reset score
+            gameStarted = true;
             gameOver = false;
-        }
+            gameLoop();
+        });
 
         function update() {
             if (!gameStarted || gamePaused || gameOver) return;
@@ -205,6 +202,9 @@
             if (distance < playerBall.radius + opponentBall.radius) {
                 gameOver = true;
                 gameOverMenu.style.display = 'flex';
+
+                // Increase score by 100 when opponent is killed
+                score += 100;
             }
         }
 
@@ -256,49 +256,6 @@
             ctx.closePath();
         }
 
-        function dash() {
-            const currentTime = Date.now();
-            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown && keys.shift) {
-                playerBall.isDashing = true;
-                playerBall.lastDashTime = currentTime;
-
-                const dashX = playerBall.x + playerBall.dx * playerBall.dashSpeed;
-                const dashY = playerBall.y + playerBall.dy * playerBall.dashSpeed;
-
-                createAfterimages(playerBall.x, playerBall.y, dashX, dashY);
-
-                playerBall.x = dashX;
-                playerBall.y = dashY;
-
-                setTimeout(() => {
-                    playerBall.isDashing = false;
-                }, 100);
-            }
-        }
-
-        function createAfterimages(startX, startY, endX, endY) {
-            const steps = 10;
-            for (let i = 0; i < steps; i++) {
-                const t = i / steps;
-                afterimages.push({
-                    x: startX + t * (endX - startX),
-                    y: startY + t * (endY - startY),
-                    radius: playerBall.radius,
-                    opacity: 1 - t,
-                    timestamp: Date.now()
-                });
-            }
-        }
-
-        function updateAfterimages() {
-            const currentTime = Date.now();
-            for (let i = afterimages.length - 1; i >= 0; i--) {
-                if (currentTime - afterimages[i].timestamp > afterimageLifetime) {
-                    afterimages.splice(i, 1);
-                }
-            }
-        }
-
         function shootBullet() {
             const currentTime = Date.now();
             if (currentTime - lastBulletTime >= bulletCooldown) {
@@ -343,6 +300,8 @@
                     opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
                     opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
                     bullets.splice(i, 1);
+                    // Increase score by 100 when opponent is killed
+                    score += 100;
                 }
             }
 
@@ -367,6 +326,7 @@
             if (event.key === 's') keys.s = true;
             if (event.key === 'd') keys.d = true;
             if (event.key === 'Shift') keys.shift = true;
+            if (event.key === ' ') shootBullet();
         });
 
         window.addEventListener('keyup', (event) => {
@@ -377,180 +337,55 @@
             if (event.key === 'Shift') keys.shift = false;
         });
 
-        window.addEventListener('mousedown', (event) => {
-            if (event.button === 0) {
-                shootBullet();
-            }
-        });
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            if (canvas.width < 800 || canvas.height < 600) {
-                pauseMenu.style.display = 'flex';
-                gamePaused = true;
-            }
-        });
-
         function gameLoop() {
-            if (!gameStarted) return;
+            if (!gameStarted || gamePaused || gameOver) return;
 
             update();
             drawBalls();
-            dash();
+            drawScore(); // Call the function to draw the score on the canvas
 
-            if (!gameOver) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-         function gameLoop() {
-        if (!gameStarted) return;
-
-        // Update movement, opponent, and bullet logic
-        update();
-        dash();
-        updateBullets();  // Ensure this is called in the game loop to update bullet positions
-
-        // Draw balls (player and opponent)
-        drawBalls();
-
-        // Draw bullets after updating them
-        drawBullets();  // We will call this to draw all the bullets on the canvas
-
-        if (!gameOver) {
             requestAnimationFrame(gameLoop);
         }
-    }
 
-    // Function to draw bullets separately (called after updating bullets)
-    function drawBullets() {
-        bullets.forEach((bullet) => {
-            ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
-            ctx.fillStyle = 'orange';
-            ctx.fill();
-            ctx.closePath();
-        });
-    }
+        // Function to draw the score on the top-right corner
+        function drawScore() {
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'right';
+            ctx.fillText(`Score: ${score}`, canvas.width - 20, 40);
+        }
 
-    // Function to update the bullets (e.g., moving and collision)
-    function updateBullets() {
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            const bullet = bullets[i];
-            bullet.x += bullet.dx;
-            bullet.y += bullet.dy;
-
-            // Remove bullets that go out of bounds
-            if (
-                bullet.x < 0 ||
-                bullet.x > canvas.width ||
-                bullet.y < 0 ||
-                bullet.y > canvas.height
-            ) {
-                bullets.splice(i, 1);
-                continue;
+        // Set up score increase every 2 seconds
+        setInterval(() => {
+            if (gameStarted && !gameOver) {
+                score += 10;
             }
+        }, 2000); // Update every 2 seconds
 
-            // Check collision with opponent ball
-            const dx = bullet.x - opponentBall.x;
-            const dy = bullet.y - opponentBall.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < bulletRadius + opponentBall.radius) {
-                // Destroy opponent ball
-                opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
-                opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
-                bullets.splice(i, 1);
+        // Spawn opponent ball at the start of the game
+        function spawnOpponentBall() {
+            const edge = Math.floor(Math.random() * 4);
+            switch (edge) {
+                case 0: // Top edge
+                    opponentBall.x = Math.random() * canvas.width;
+                    opponentBall.y = 0;
+                    break;
+                case 1: // Bottom edge
+                    opponentBall.x = Math.random() * canvas.width;
+                    opponentBall.y = canvas.height;
+                    break;
+                case 2: // Left edge
+                    opponentBall.x = 0;
+                    opponentBall.y = Math.random() * canvas.height;
+                    break;
+                case 3: // Right edge
+                    opponentBall.x = canvas.width;
+                    opponentBall.y = Math.random() * canvas.height;
+                    break;
             }
         }
-    }
-        // Add a new score variable
-    let score = 0;
 
-    // Update the game loop to draw the score
-    function gameLoop() {
-        if (!gameStarted) return;
-
-        // Update movement, opponent, and bullet logic
-        update();
-        dash();
-        updateBullets();  // Ensure this is called in the game loop to update bullet positions
-
-        // Draw balls (player and opponent)
-        drawBalls();
-
-        // Draw bullets after updating them
-        drawBullets();  // We will call this to draw all the bullets on the canvas
-
-        // Draw the score
-        drawScore();
-
-        if (!gameOver) {
-            requestAnimationFrame(gameLoop);
-        }
-    }
-
-    // Function to draw the score on the top-right corner
-    function drawScore() {
-        ctx.font = '30px Arial';
-        ctx.fillStyle = 'black';
-        ctx.textAlign = 'right';
-        ctx.fillText(`Score: ${score}`, canvas.width - 20, 40); // 20px padding from the right edge
-    }
-
-    // Function to update the score periodically every 2 seconds
-    setInterval(() => {
-        if (gameStarted && !gameOver) {
-            score += 10;
-        }
-    }, 2000); // Update every 2 seconds
-
-    // Function to handle opponent death and increase score
-    function checkCollision() {
-        const dx = playerBall.x - opponentBall.x;
-        const dy = playerBall.y - opponentBall.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < playerBall.radius + opponentBall.radius) {
-            gameOver = true;
-            gameOverMenu.style.display = 'flex';
-
-            // Increase score by 100 when opponent is killed
-            score += 100;
-        }
-    }
-
-    // Initialize the opponent ball at a random edge
-    function spawnOpponentBall() {
-        const edge = Math.floor(Math.random() * 4);
-        switch (edge) {
-            case 0: // Top edge
-                opponentBall.x = Math.random() * canvas.width;
-                opponentBall.y = 0;
-                break;
-            case 1: // Bottom edge
-                opponentBall.x = Math.random() * canvas.width;
-                opponentBall.y = canvas.height;
-                break;
-            case 2: // Left edge
-                opponentBall.x = 0;
-                opponentBall.y = Math.random() * canvas.height;
-                break;
-            case 3: // Right edge
-                opponentBall.x = canvas.width;
-                opponentBall.y = Math.random() * canvas.height;
-                break;
-        }
-    }
-
-    // Function to reset the game and opponent position
-    function restartGame() {
-        score = 0;  // Reset the score on game restart
-        spawnOpponentBall(); // Reset opponent ball position
-        // Other reset logic
-    }
-
-    // Spawn opponent on game start
-    spawnOpponentBall();  // Spawn opponent when the game starts
+        spawnOpponentBall(); // Spawn opponent when the game starts
     </script>
 </body>
 </html>
