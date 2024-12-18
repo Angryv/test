@@ -55,14 +55,138 @@
     </div>
     <canvas id="gameCanvas"></canvas>
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const menu = document.getElementById('menu');
-        const pauseMenu = document.getElementById('pauseMenu');
-        const gameOverMenu = document.getElementById('gameOverMenu');
-        const startButton = document.getElementById('startButton');
-        const continueButton = document.getElementById('continueButton');
-        const restartButton = document.getElementById('restartButton');
+
+// New variables for enemy spawning system
+let maxEnemyCount = 5; // Initial maximum enemy count
+let enemySpawnTimer = 0; // Tracks time passed to increase max enemy count
+let enemyCount = 0; // Current number of enemies
+let enemiesDestroyed = 0; // Total number of enemies destroyed
+
+// Resets all enemy-related variables when the game resets
+function resetGame() {
+    playerBall.x = canvas.width / 4;
+    playerBall.y = canvas.height / 2;
+    playerBall.dx = 0;
+    playerBall.dy = 0;
+    opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
+    opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
+    opponentBall.dx = 0;
+    opponentBall.dy = 0;
+    bullets.length = 0; // Clear bullets
+    enemiesDestroyed = 0; // Reset enemies destroyed count
+    maxEnemyCount = 5; // Reset max enemy count
+    enemyCount = 0; // Reset current enemy count
+    gameOver = false;
+}
+
+// Function to spawn new enemies up to the maximum count
+function spawnEnemies() {
+    while (enemyCount < maxEnemyCount) {
+        const newEnemy = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: 20,
+            color: 'red',
+            speed: 1,
+            dx: 0,
+            dy: 0
+        };
+
+        // Ensure the new enemy doesn't overlap with the player
+        const dx = newEnemy.x - playerBall.x;
+        const dy = newEnemy.y - playerBall.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > newEnemy.radius + playerBall.radius + 50) {
+            opponentBall.push(newEnemy); // Add to the enemies array
+            enemyCount++;
+        }
+    }
+}
+
+// Update function with timer logic for increasing max enemy count
+function update() {
+    if (!gameStarted || gamePaused || gameOver) return;
+
+    // Update the enemy spawn timer
+    enemySpawnTimer += 16.67; // Approximate frame time in ms (60 FPS)
+    if (enemySpawnTimer >= 5000) { // Every 5 seconds
+        maxEnemyCount += 2; // Increase max enemy count by 2
+        enemySpawnTimer = 0; // Reset timer
+    }
+
+    // Spawn new enemies if needed
+    spawnEnemies();
+
+    // Player movement logic
+    playerBall.dx = 0;
+    playerBall.dy = 0;
+    if (keys.w) playerBall.dy = -playerBall.speed;
+    if (keys.s) playerBall.dy = playerBall.speed;
+    if (keys.a) playerBall.dx = -playerBall.speed;
+    if (keys.d) playerBall.dx = playerBall.speed;
+
+    // Normalize diagonal movement
+    const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
+    if (magnitude > 0) {
+        playerBall.dx /= magnitude;
+        playerBall.dy /= magnitude;
+        playerBall.dx *= playerBall.speed;
+        playerBall.dy *= playerBall.speed;
+    }
+
+    // Update position
+    playerBall.x += playerBall.dx;
+    playerBall.y += playerBall.dy;
+
+    // Prevent going out of bounds
+    if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
+    if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
+    if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
+    if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
+
+    moveOpponentBall();
+    checkCollision();
+    updateBullets();
+    updateAfterimages();
+}
+
+// Update bullets to handle enemy collisions
+function updateBullets() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const bullet = bullets[i];
+        bullet.x += bullet.dx;
+        bullet.y += bullet.dy;
+
+        // Remove bullets that go out of bounds
+        if (
+            bullet.x < 0 ||
+            bullet.x > canvas.width ||
+            bullet.y < 0 ||
+            bullet.y > canvas.height
+        ) {
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        // Check collision with all enemies
+        for (let j = opponentBall.length - 1; j >= 0; j--) {
+            const enemy = opponentBall[j];
+            const dx = bullet.x - enemy.x;
+            const dy = bullet.y - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < bulletRadius + enemy.radius) {
+                // Destroy enemy and remove bullet
+                opponentBall.splice(j, 1);
+                bullets.splice(i, 1);
+                enemiesDestroyed++;
+                enemyCount--; // Decrease current enemy count
+                break;
+            }
+        }
+    }
+}
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
