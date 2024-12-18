@@ -298,110 +298,180 @@
             mouseX = event.clientX;
             mouseY = event.clientY;
         });
+        
+        window.addEventListener('keydown', (event) => {
+    if (event.key === 'w' || event.key === 's' || event.key === 'a' || event.key === 'd') {
+        keys[event.key] = true;
+    }
+});
 
-        window.addEventListener('keydown', (event
-        // Function to reset the enemies when the game is reset
-        function resetEnemies() {
-            enemies.length = 0; // Clear all existing enemies
-            maxEnemyCount = 5; // Reset max enemy count to the starting value
-            timeSinceLastIncrease = 0; // Reset the timer
-            spawnEnemy(); // Spawn initial enemies
-        }
+window.addEventListener('keyup', (event) => {
+    if (event.key === 'w' || event.key === 's' || event.key === 'a' || event.key === 'd') {
+        keys[event.key] = false;
+    }
+});
 
-        // Spawn initial enemies
+// Function to reset the enemies when the game is reset
+function resetEnemies() {
+    enemies.length = 0; // Clear all existing enemies
+    maxEnemyCount = 5; // Reset max enemy count to the starting value
+    timeSinceLastIncrease = 0; // Reset the timer
+    spawnEnemy(); // Spawn initial enemies
+}
+
+// Reset game state and enemies when the game is reset
+function resetGame() {
+    playerBall.x = canvas.width / 4;
+    playerBall.y = canvas.height / 2;
+    playerBall.dx = 0;
+    playerBall.dy = 0;
+    bullets.length = 0; // Clear bullets
+    gameOver = false;
+    resetEnemies(); // Reset the enemies
+}
+
+// Spawn initial enemies
+spawnEnemy();
+
+// Update function that manages time-based enemy spawning
+function update() {
+    if (!gameStarted || gamePaused || gameOver) return;
+
+    // Update the timer for increasing enemy count
+    timeSinceLastIncrease += 16; // Approximately 16ms per frame
+    if (timeSinceLastIncrease >= 5000) {
+        maxEnemyCount += 2;
+        timeSinceLastIncrease = 0;
+    }
+
+    // Spawn enemies if below the current max count
+    while (enemies.length < maxEnemyCount) {
         spawnEnemy();
+    }
 
-        // Reset game state and enemies when the game is reset
-        function resetGame() {
-            playerBall.x = canvas.width / 4;
-            playerBall.y = canvas.height / 2;
-            playerBall.dx = 0;
-            playerBall.dy = 0;
-            opponentBall.x = Math.random() < 0.5 ? 0 : canvas.width;
-            opponentBall.y = Math.random() < 0.5 ? 0 : canvas.height;
-            opponentBall.dx = 0;
-            opponentBall.dy = 0;
-            bullets.length = 0; // Clear bullets
-            gameOver = false;
-            resetEnemies(); // Reset the enemies
+    // Update player movement
+    playerBall.dx = 0;
+    playerBall.dy = 0;
+    if (keys.w) playerBall.dy = -playerBall.speed;
+    if (keys.s) playerBall.dy = playerBall.speed;
+    if (keys.a) playerBall.dx = -playerBall.speed;
+    if (keys.d) playerBall.dx = playerBall.speed;
+
+    // Normalize diagonal movement
+    const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
+    if (magnitude > 0) {
+        playerBall.dx /= magnitude;
+        playerBall.dy /= magnitude;
+        playerBall.dx *= playerBall.speed;
+        playerBall.dy *= playerBall.speed;
+    }
+
+    // Update player position
+    playerBall.x += playerBall.dx;
+    playerBall.y += playerBall.dy;
+
+    // Keep player within bounds
+    if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
+    if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
+    if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
+    if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
+
+    // Update enemies
+    enemies.forEach((enemy) => {
+        const dx = playerBall.x - enemy.x;
+        const dy = playerBall.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance === 0) return;
+
+        enemy.dx = (dx / distance) * enemy.speed;
+        enemy.dy = (dy / distance) * enemy.speed;
+
+        enemy.x += enemy.dx;
+        enemy.y += enemy.dy;
+
+        // Keep enemies within bounds
+        if (enemy.x - enemy.radius < 0) enemy.x = enemy.radius;
+        if (enemy.x + enemy.radius > canvas.width) enemy.x = canvas.width - enemy.radius;
+        if (enemy.y - enemy.radius < 0) enemy.y = enemy.radius;
+        if (enemy.y + enemy.radius > canvas.height) enemy.y = canvas.height - enemy.radius;
+
+        // Check collision with player
+        if (distance < playerBall.radius + enemy.radius) {
+            gameOver = true;
+            gameOverMenu.style.display = 'flex';
+        }
+    });
+
+    updateBullets();
+    updateAfterimages();
+}
+
+// Start the game loop
+  function gameLoop() {
+            if (!gameStarted) return;
+
+            update();
+            dash();
+
+            // Draw balls (player and opponent)
+            drawBalls();
+
+            // Draw bullets after updating them
+            drawBullets();
+
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
         }
 
-        // Update function that manages time-based enemy spawning
-        function update() {
-            if (!gameStarted || gamePaused || gameOver) return;
-
-            // Update the timer for increasing enemy count
-            timeSinceLastIncrease += 16; // Approximately 16ms per frame
-            if (timeSinceLastIncrease >= 5000) {
-                maxEnemyCount += 2;
-                timeSinceLastIncrease = 0;
-            }
-
-            // Spawn enemies if below the current max count
-            while (enemies.length < maxEnemyCount) {
-                spawnEnemy();
-            }
-
-            // Update player movement
-            playerBall.dx = 0;
-            playerBall.dy = 0;
-            if (keys.w) playerBall.dy = -playerBall.speed;
-            if (keys.s) playerBall.dy = playerBall.speed;
-            if (keys.a) playerBall.dx = -playerBall.speed;
-            if (keys.d) playerBall.dx = playerBall.speed;
-
-            // Normalize diagonal movement
-            const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
-            if (magnitude > 0) {
-                playerBall.dx /= magnitude;
-                playerBall.dy /= magnitude;
-                playerBall.dx *= playerBall.speed;
-                playerBall.dy *= playerBall.speed;
-            }
-
-            // Update player position
-            playerBall.x += playerBall.dx;
-            playerBall.y += playerBall.dy;
-
-            // Keep player within bounds
-            if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
-            if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
-            if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
-            if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
-
-            // Update enemies
-            enemies.forEach((enemy) => {
-                const dx = playerBall.x - enemy.x;
-                const dy = playerBall.y - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance === 0) return;
-
-                enemy.dx = (dx / distance) * enemy.speed;
-                enemy.dy = (dy / distance) * enemy.speed;
-
-                enemy.x += enemy.dx;
-                enemy.y += enemy.dy;
-
-                // Keep enemies within bounds
-                if (enemy.x - enemy.radius < 0) enemy.x = enemy.radius;
-                if (enemy.x + enemy.radius > canvas.width) enemy.x = canvas.width - enemy.radius;
-                if (enemy.y - enemy.radius < 0) enemy.y = enemy.radius;
-                if (enemy.y + enemy.radius > canvas.height) enemy.y = canvas.height - enemy.radius;
-
-                // Check collision with player
-                if (distance < playerBall.radius + enemy.radius) {
-                    gameOver = true;
-                    gameOverMenu.style.display = 'flex';
-                }
+        // Function to draw bullets separately (called after updating bullets)
+        function drawBullets() {
+            bullets.forEach((bullet) => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'orange';
+                ctx.fill();
+                ctx.closePath();
             });
-
-            updateBullets();
-            updateAfterimages();
         }
 
-        // Start the game loop
-        gameLoop();
+        window.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'w') keys.w = true;
+            if (event.key === 'a') keys.a = true;
+            if (event.key === 's') keys.s = true;
+            if (event.key === 'd') keys.d = true;
+            if (event.key === 'Shift') keys.shift = true;
+        });
+
+        window.addEventListener('keyup', (event) => {
+            if (event.key === 'w') keys.w = false;
+            if (event.key === 'a') keys.a = false;
+            if (event.key === 's') keys.s = false;
+            if (event.key === 'd') keys.d = false;
+            if (event.key === 'Shift') keys.shift = false;
+        });
+
+        window.addEventListener('mousedown', (event) => {
+            if (event.button === 0) {
+                shootBullet();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            if (canvas.width < 800 || canvas.height < 600) {
+                pauseMenu.style.display = 'flex';
+                gamePaused = true;
+            }
+        });
     </script>
 </body>
 </html>
