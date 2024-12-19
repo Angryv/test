@@ -354,7 +354,8 @@
             event.preventDefault();
         }
     });
-    window.addEventListener('resize', () => {
+
+        window.addEventListener('resize', () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         // Reposition the player ball and reset the opponent balls if necessary
@@ -684,5 +685,3 @@
         shootBullet();
     });
 </script>
-</body>
-</html>
