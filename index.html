@@ -86,7 +86,7 @@
     const bulletSpeed = 10;
     const bulletRadius = 5;
     let lastBulletTime = 0;
-    const bulletCooldown = 300; // milliseconds
+    const bulletCooldown = 10; // milliseconds
 
     const afterimages = [];
     const afterimageLifetime = 150; // in milliseconds
@@ -111,7 +111,7 @@
 
         // Start spawning opponents every second
         spawnInterval = setInterval(() => {
-            maxOpponents += 5; // Increase the max number of opponents every second
+            maxOpponents += 10; // Increase the max number of opponents every second
             spawnOpponents(maxOpponents); // Spawn new opponents
         }, 1000);
     });
