@@ -360,13 +360,14 @@
         dash();
 
         shootBullet();
-
+        
         // Draw balls (player and opponents)
         drawBalls();
 
         // Draw bullets after updating them
         drawBullets();
-
+        mousedown();
+        mouseup();
         if (!gameOver) {
             requestAnimationFrame(gameLoop);
         }
