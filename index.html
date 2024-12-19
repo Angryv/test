@@ -72,7 +72,7 @@
         y: canvas.height / 2,
         radius: 20,
         color: 'blue',
-        speed: 5,
+        speed: 5, // Player's base speed
         dashSpeed: 40,
         dx: 0,
         dy: 0,
@@ -82,8 +82,6 @@
     };
 
     const opponentBalls = []; // Array to store multiple opponents
-    const opponentSpeed = 1;
-
     const bullets = [];
     const bulletSpeed = 10;
     const bulletRadius = 5;
@@ -169,13 +167,17 @@
                     break;
             }
 
+            // Assign a random speed for each opponent (between 0 and player's base speed)
+            const opponentSpeed = Math.random() * playerBall.speed; 
+
             opponentBalls.push({
                 x: x,
                 y: y,
                 radius: 20,
                 color: 'red',
                 dx: 0,
-                dy: 0
+                dy: 0,
+                speed: opponentSpeed // Store the opponent's speed
             });
         }
     }
@@ -224,8 +226,8 @@
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance === 0) return;
 
-            opponentBall.dx = (dx / distance) * opponentSpeed;
-            opponentBall.dy = (dy / distance) * opponentSpeed;
+            opponentBall.dx = (dx / distance) * opponentBall.speed;
+            opponentBall.dy = (dy / distance) * opponentBall.speed;
 
             opponentBall.x += opponentBall.dx;
             opponentBall.y += opponentBall.dy;
