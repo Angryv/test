@@ -402,10 +402,22 @@
         if (event.key === 'Shift') keys.shift = false
     });
 
-    // Add event listener for mouse button to shoot
-    window.addEventListener('mousedown', () => {
-        shootBullet();
-    });
+    let isShooting = false; // Flag to check if shooting
+let shootInterval;
+
+window.addEventListener('mousedown', () => {
+    if (!isShooting) {
+        isShooting = true;
+        shootBullet(); // Immediate shot
+        shootInterval = setInterval(shootBullet, bulletCooldown); // Repeated shots
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    isShooting = false;
+    clearInterval(shootInterval); // Stop shooting
+});
+
 
     // Handle player dashing
     function dash() {
