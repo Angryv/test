@@ -273,7 +273,7 @@
         afterimages.forEach(({ x, y, radius, opacity }) => {
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+            ctx.fillStyle = rgba(0, 0, 255, ${opacity});
             ctx.fill();
             ctx.closePath();
         });
