@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,9 +42,8 @@
             display: none;
         }
     </style>
-    </head>
-    <body>
-    </script>
+</head>
+<body>
     <div id="menu">
         <button id="startButton">Start</button>
     </div>
@@ -56,7 +54,7 @@
         <button id="restartButton">Restart</button>
     </div>
     <canvas id="gameCanvas"></canvas>
-  <script>
+   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const menu = document.getElementById('menu');
@@ -101,7 +99,7 @@
     const keys = { w: false, a: false, s: false, d: false, shift: false };
 
     let maxOpponents = 5;  // Initial maximum number of opponents
-    let spawnInterval = 1;     // The interval to spawn opponents every second
+    let spawnInterval =1;     // The interval to spawn opponents every second
 
     startButton.addEventListener('click', () => {
         menu.style.display = 'none';
@@ -170,7 +168,7 @@
             }
 
             // Assign a random speed for each opponent (between 0 and player's base speed)
-            const opponentSpeed = Math.random() *4; 
+            const opponentSpeed = Math.random() * 4; 
 
             opponentBalls.push({
                 x: x,
@@ -275,7 +273,7 @@
         afterimages.forEach(({ x, y, radius, opacity }) => {
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = rgba(0, 0, 255, ${opacity});
+            ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
             ctx.fill();
             ctx.closePath();
         });
