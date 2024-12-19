@@ -54,8 +54,8 @@
         <button id="restartButton">Restart</button>
     </div>
     <canvas id="gameCanvas"></canvas>
-    <script>
-        const canvas = document.getElementById('gameCanvas');
+   <script>
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const menu = document.getElementById('menu');
     const pauseMenu = document.getElementById('pauseMenu');
@@ -147,9 +147,31 @@
 
     function spawnOpponents(num) {
         for (let i = opponentBalls.length; i < num; i++) {
+            const edge = Math.floor(Math.random() * 4); // Randomly choose one of the four edges (0: top, 1: right, 2: bottom, 3: left)
+            let x, y;
+
+            switch (edge) {
+                case 0: // Top edge
+                    x = Math.random() * canvas.width;
+                    y = 0;
+                    break;
+                case 1: // Right edge
+                    x = canvas.width;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // Bottom edge
+                    x = Math.random() * canvas.width;
+                    y = canvas.height;
+                    break;
+                case 3: // Left edge
+                    x = 0;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+
             opponentBalls.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
+                x: x,
+                y: y,
                 radius: 20,
                 color: 'red',
                 dx: 0,
@@ -434,6 +456,6 @@
         canvas.height = window.innerHeight;
         resetGame(); // Reset the game if the window is resized
     });
-    </script>
+</script>
 </body>
 </html>
