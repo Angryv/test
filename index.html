@@ -101,11 +101,14 @@
     let maxOpponents = 5;  // Initial maximum number of opponents
     let spawnInterval = 1;     // The interval to spawn opponents every second
 
+    let score = 0; // Initialize score
+
     startButton.addEventListener('click', () => {
         menu.style.display = 'none';
         gameStarted = true;
         gamePaused = false;
         gameOver = false;
+        score = 0; // Reset score when starting the game
         resetGame(); // Reset and start the game
         gameLoop();
 
@@ -168,7 +171,7 @@
             }
 
             // Assign a random speed for each opponent (between 0 and player's base speed)
-            const opponentSpeed = Math.random() *4; 
+            const opponentSpeed = Math.random() * 4; 
 
             opponentBalls.push({
                 x: x,
@@ -241,7 +244,7 @@
 
     function checkCollisions() {
         // Check collision with each opponent
-        opponentBalls.forEach(opponentBall => {
+        opponentBalls.forEach((opponentBall, opponentIndex) => {
             const dx = playerBall.x - opponentBall.x;
             const dy = playerBall.y - opponentBall.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -261,6 +264,9 @@
                     // Remove the opponent and the bullet
                     opponentBalls.splice(opponentIndex, 1);
                     bullets.splice(index, 1);
+
+                    // Increase the score when an enemy is killed
+                    score++;
                 }
             });
         });
@@ -295,6 +301,7 @@
         });
 
         drawGun();
+        drawScore(); // Draw score on the screen
     }
 
     function drawGun() {
@@ -381,6 +388,13 @@
         });
     }
 
+    // Function to draw the score on the screen
+    function drawScore() {
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'black';
+        ctx.fillText('Score: ' + score, 20, 40); // Display score at the top-left corner
+    }
+
     window.addEventListener('mousemove', (event) => {
         mouseX = event.clientX;
         mouseY = event.clientY;
@@ -407,7 +421,7 @@
         shootBullet();
     });
 
-    // Handle player dashing
+       // Handle player dashing
     function dash() {
         const currentTime = Date.now();
         if (keys.shift && currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
@@ -421,43 +435,9 @@
             setTimeout(() => {
                 playerBall.speed = 5;
                 playerBall.isDashing = false;
-            }, 150);
+            }, 150);  // Dash lasts for 150ms
         }
     }
-
-    // Update afterimages for dash effect
-    function updateAfterimages() {
-        if (playerBall.isDashing) {
-            afterimages.push({
-                x: playerBall.x,
-                y: playerBall.y,
-                radius: playerBall.radius * 0.8,
-                opacity: 0.5
-            });
-        }
-
-        // Fade out and remove old afterimages
-        afterimages.forEach((image, index) => {
-            image.opacity -= 0.02;
-            if (image.opacity <= 0) {
-                afterimages.splice(index, 1);
-            }
-        });
-    }
-
-    // Prevent the default behavior of space and shift keys
-    window.addEventListener('keydown', (event) => {
-        if (event.key === ' ' || event.key === 'Shift') {
-            event.preventDefault();
-        }
-    });
-
-    // Resize the canvas on window resize
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        resetGame(); // Reset the game if the window is resized
-    });
 </script>
 </body>
 </html>
