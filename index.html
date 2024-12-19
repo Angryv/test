@@ -81,14 +81,10 @@
             lastDashTime: 0
         };
 
-        const opponentBall = {
-            x: 0,
-            y: 0,
-            radius: 20,
-            color: 'red',
-            speed: 1,
-            dx: 0,
-            dy: 0
+        const opponentBalls = []; // Array to hold multiple opponent balls
+        const maxOpponents = 5; // Maximum number of opponent balls allowed
+        const spawnInterval = 2000; // Time interval (in milliseconds) to spawn a new opponent
+
         };
 
         const bullets = [];
@@ -113,6 +109,9 @@
             gamePaused = false;
             gameOver = false;
             gameLoop();
+      
+            // Start spawning opponents periodically
+            setInterval(spawnOpponentBall, spawnInterval);
         });
 
         continueButton.addEventListener('click', () => {
@@ -143,6 +142,19 @@
             gameOver = false;
         }
 
+        function spawnOpponentBall() {
+    if (opponentBalls.length < maxOpponents) {
+        opponentBalls.push({
+            x: Math.random() < 0.5 ? 0 : canvas.width,
+            y: Math.random() < 0.5 ? 0 : canvas.height,
+            radius: 20,
+            color: 'red',
+            speed: 1 + Math.random() * 1, // Random speed between 1 and 2
+            dx: 0,
+            dy: 0
+        });
+    
+        
         function update() {
             if (!gameStarted || gamePaused || gameOver) return;
 
@@ -179,63 +191,73 @@
             updateAfterimages();
         }
 
-        function moveOpponentBall() {
-            const dx = playerBall.x - opponentBall.x;
-            const dy = playerBall.y - opponentBall.y;
+       function moveOpponentBalls() {
+        opponentBalls.forEach((opponentBall) => {
+        const dx = playerBall.x - opponentBall.x;
+        const dy = playerBall.y - opponentBall.y;
 
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance === 0) return;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance === 0) return;
 
-            opponentBall.dx = (dx / distance) * opponentBall.speed;
-            opponentBall.dy = (dy / distance) * opponentBall.speed;
+        opponentBall.dx = (dx / distance) * opponentBall.speed;
+        opponentBall.dy = (dy / distance) * opponentBall.speed;
 
-            opponentBall.x += opponentBall.dx;
-            opponentBall.y += opponentBall.dy;
+        opponentBall.x += opponentBall.dx;
+        opponentBall.y += opponentBall.dy;
 
-            if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
-            if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
-            if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
-            if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
-        }
+        // Prevent going out of bounds
+        if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
+        if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
+        if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
+        if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
+        });
+       }
+
+        
 
         function checkCollision() {
-            const dx = playerBall.x - opponentBall.x;
-            const dy = playerBall.y - opponentBall.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < playerBall.radius + opponentBall.radius) {
-                gameOver = true;
-                gameOverMenu.style.display = 'flex';
-            }
+        opponentBalls.forEach((opponentBall) => {
+        const dx = playerBall.x - opponentBall.x;
+        const dy = playerBall.y - opponentBall.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < playerBall.radius + opponentBall.radius) {
+            gameOver = true;
+            gameOverMenu.style.display = 'flex';
+        }
+    });
+}
+
+       function drawBalls() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw afterimages
+        afterimages.forEach(({ x, y, radius, opacity }) => {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+        ctx.fill();
+        ctx.closePath();
+        });
+
+        // Player ball
+        ctx.beginPath();
+        ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
+        ctx.fillStyle = playerBall.color;
+        ctx.fill();
+        ctx.closePath();
+
+        // Opponent balls
+        opponentBalls.forEach((opponentBall) => {
+        ctx.beginPath();
+        ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
+        ctx.fillStyle = opponentBall.color;
+        ctx.fill();
+        ctx.closePath();
+        });
+
+        drawGun();
         }
 
-        function drawBalls() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw afterimages
-            afterimages.forEach(({ x, y, radius, opacity }) => {
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
-                ctx.fill();
-                ctx.closePath();
-            });
-
-            // Player ball
-            ctx.beginPath();
-            ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
-            ctx.fillStyle = playerBall.color;
-            ctx.fill();
-            ctx.closePath();
-
-            // Opponent ball
-            ctx.beginPath();
-            ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
-            ctx.fillStyle = opponentBall.color;
-            ctx.fill();
-            ctx.closePath();
-
-            drawGun();
-        }
 
         function drawGun() {
             if (!gameStarted || gamePaused || gameOver) return;
@@ -358,7 +380,10 @@
 
             // Draw bullets after updating them
             drawBullets();
-
+             moveOpponentBalls();
+            checkCollision();
+            updateBullets();
+            updateAfterimages();
             if (!gameOver) {
                 requestAnimationFrame(gameLoop);
             }
@@ -411,6 +436,7 @@
                 gamePaused = true;
             }
         });
+ 
     </script>
 </body>
 </html>
