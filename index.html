@@ -81,15 +81,8 @@
             lastDashTime: 0
         };
 
-        const opponents = [{
-            x: 0,
-            y: 0,
-            radius: 20,
-            color: 'red',
-            speed: 1,
-            dx: 0,
-            dy: 0
-        }];
+        const opponentBalls = []; // Array to store multiple opponents
+        const opponentSpeed = 1;
 
         const bullets = [];
         const bulletSpeed = 10;
@@ -112,6 +105,7 @@
             gameStarted = true;
             gamePaused = false;
             gameOver = false;
+            resetGame(); // Reset and start the game
             gameLoop();
         });
 
@@ -135,23 +129,23 @@
             playerBall.y = canvas.height / 2;
             playerBall.dx = 0;
             playerBall.dy = 0;
-            opponents.forEach(opponent => respawnOpponent(opponent));
             bullets.length = 0; // clear bullets
             gameOver = false;
+            opponentBalls.length = 0; // Clear previous opponents
+            spawnOpponents(5); // Spawn 5 opponents
         }
 
-        function respawnOpponent(opponent) {
-            // Randomize opponent position
-            opponent.x = Math.random() < 0.5 ? 0 : canvas.width;
-            opponent.y = Math.random() < 0.5 ? 0 : canvas.height;
-
-            // Set random movement towards player
-            const dx = playerBall.x - opponent.x;
-            const dy = playerBall.y - opponent.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            opponent.dx = (dx / distance) * opponent.speed;
-            opponent.dy = (dy / distance) * opponent.speed;
+        function spawnOpponents(num) {
+            for (let i = 0; i < num; i++) {
+                opponentBalls.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: 20,
+                    color: 'red',
+                    dx: 0,
+                    dy: 0
+                });
+            }
         }
 
         function update() {
@@ -184,60 +178,84 @@
             if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
             if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
 
-            moveOpponents();
-            checkCollision();
+            moveOpponentBalls();
+            checkCollisions();
             updateBullets();
             updateAfterimages();
         }
 
-        function moveOpponents() {
-            opponents.forEach(opponent => {
-                const dx = playerBall.x - opponent.x;
-                const dy = playerBall.y - opponent.y;
+        function moveOpponentBalls() {
+            opponentBalls.forEach(opponentBall => {
+                const dx = playerBall.x - opponentBall.x;
+                const dy = playerBall.y - opponentBall.y;
 
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance === 0) return;
 
-                opponent.dx = (dx / distance) * opponent.speed;
-                opponent.dy = (dy / distance) * opponent.speed;
+                opponentBall.dx = (dx / distance) * opponentSpeed;
+                opponentBall.dy = (dy / distance) * opponentSpeed;
 
-                opponent.x += opponent.dx;
-                opponent.y += opponent.dy;
+                opponentBall.x += opponentBall.dx;
+                opponentBall.y += opponentBall.dy;
 
-                if (opponent.x - opponent.radius < 0) opponent.x = opponent.radius;
-                if (opponent.x + opponent.radius > canvas.width) opponent.x = canvas.width - opponent.radius;
-                if (opponent.y - opponent.radius < 0) opponent.y = opponent.radius;
-                if (opponent.y + opponent.radius > canvas.height) opponent.y = canvas.height - opponent.radius;
+                if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
+                if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
+                if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
+                if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
             });
         }
 
-        function checkCollision() {
-            opponents.forEach(opponent => {
-                const dx = playerBall.x - opponent.x;
-                const dy = playerBall.y - opponent.y;
+        function checkCollisions() {
+            // Check collision with each opponent
+            opponentBalls.forEach(opponentBall => {
+                const dx = playerBall.x - opponentBall.x;
+                const dy = playerBall.y - opponentBall.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < playerBall.radius + opponent.radius) {
+                if (distance < playerBall.radius + opponentBall.radius) {
                     gameOver = true;
                     gameOverMenu.style.display = 'flex';
                 }
+            });
+
+            // Check bullet collisions with opponents
+            bullets.forEach((bullet, index) => {
+                opponentBalls.forEach((opponentBall, opponentIndex) => {
+                    const dx = bullet.x - opponentBall.x;
+                    const dy = bullet.y - opponentBall.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < bulletRadius + opponentBall.radius) {
+                        // Remove the opponent and the bullet
+                        opponentBalls.splice(opponentIndex, 1);
+                        bullets.splice(index, 1);
+                    }
+                });
             });
         }
 
         function drawBalls() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw player ball
+            // Draw afterimages
+            afterimages.forEach(({ x, y, radius, opacity }) => {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+                ctx.fill();
+                ctx.closePath();
+            });
+
+            // Player ball
             ctx.beginPath();
             ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = playerBall.color;
             ctx.fill();
             ctx.closePath();
 
-            // Draw each opponent ball
-            opponents.forEach(opponent => {
+            // Opponent balls
+            opponentBalls.forEach(opponentBall => {
                 ctx.beginPath();
-                ctx.arc(opponent.x, opponent.y, opponent.radius, 0, Math.PI * 2);
-                ctx.fillStyle = opponent.color;
+                ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
+                ctx.fillStyle = opponentBall.color;
                 ctx.fill();
                 ctx.closePath();
             });
@@ -264,83 +282,76 @@
             ctx.closePath();
         }
 
-        function dash() {
+        function shootBullet() {
             const currentTime = Date.now();
-            if (currentTime - playerBall.lastDashTime >= playerBall.dashCooldown && keys.shift) {
-                playerBall.isDashing = true;
-                playerBall.lastDashTime = currentTime;
+            if (currentTime - lastBulletTime >= bulletCooldown) {
+                lastBulletTime = currentTime;
 
-                const dashX = playerBall.x + playerBall.dx * playerBall.dashSpeed;
-                const dashY = playerBall.y + playerBall.dy * playerBall.dashSpeed;
+                const dx = mouseX - playerBall.x;
+                const dy = mouseY - playerBall.y;
+                const angle = Math.atan2(dy, dx);
 
-                                   setTimeout(() => {
-                        playerBall.isDashing = false;
-                    }, 100); // Dash duration
-
-                    // Move player ball in the dash direction
-                    playerBall.x = dashX;
-                    playerBall.y = dashY;
-                }
+                bullets.push({
+                    x: playerBall.x + Math.cos(angle) * playerBall.radius,
+                    y: playerBall.y + Math.sin(angle) * playerBall.radius,
+                    dx: Math.cos(angle) * bulletSpeed,
+                    dy: Math.sin(angle) * bulletSpeed
+                });
             }
         }
 
         function updateBullets() {
-            const currentTime = Date.now();
-            bullets.forEach((bullet, index) => {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
                 bullet.x += bullet.dx;
                 bullet.y += bullet.dy;
 
                 // Remove bullets that go out of bounds
-                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
-                    bullets.splice(index, 1);
+                if (
+                    bullet.x < 0 ||
+                    bullet.x > canvas.width ||
+                    bullet.y < 0 ||
+                    bullet.y > canvas.height
+                ) {
+                    bullets.splice(i, 1);
+                    continue;
                 }
-            });
-        }
-
-        function drawBullets() {
-            bullets.forEach(bullet => {
-                ctx.beginPath();
-                ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'black';
-                ctx.fill();
-                ctx.closePath();
-            });
-        }
-
-        function updateAfterimages() {
-            const currentTime = Date.now();
-            afterimages.forEach((afterimage, index) => {
-                if (currentTime - afterimage.timestamp > afterimageLifetime) {
-                    afterimages.splice(index, 1);
-                }
-            });
-        }
-
-        function drawAfterimages() {
-            afterimages.forEach(afterimage => {
-                ctx.beginPath();
-                ctx.arc(afterimage.x, afterimage.y, playerBall.radius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0, 0, 255, 0.2)'; // Semi-transparent blue
-                ctx.fill();
-                ctx.closePath();
-            });
+            }
         }
 
         function gameLoop() {
-            if (!gameStarted || gamePaused || gameOver) return;
+            if (!gameStarted) return;
 
-            // Handle movement, dash, bullets, etc.
             update();
             dash();
-            drawBalls();
-            drawBullets();
-            drawAfterimages();
 
-            // Request a new animation frame
-            requestAnimationFrame(gameLoop);
+            // Draw balls (player and opponents)
+            drawBalls();
+
+            // Draw bullets after updating them
+            drawBullets();
+
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
         }
 
-        // Event listeners for controlling player ball
+        // Function to draw bullets separately (called after updating bullets)
+        function drawBullets() {
+            bullets.forEach((bullet) => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'orange';
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        window.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
         window.addEventListener('keydown', (event) => {
             if (event.key === 'w') keys.w = true;
             if (event.key === 'a') keys.a = true;
@@ -354,37 +365,65 @@
             if (event.key === 'a') keys.a = false;
             if (event.key === 's') keys.s = false;
             if (event.key === 'd') keys.d = false;
-            if (event.key === 'Shift') keys.shift = false;
+            if (event.key === 'Shift') keys.shift = false
         });
 
-        canvas.addEventListener('mousemove', (event) => {
-            mouseX = event.clientX;
-            mouseY = event.clientY;
+        // Add event listener for mouse button to shoot
+        window.addEventListener('mousedown', () => {
+            shootBullet();
         });
 
-        canvas.addEventListener('click', (event) => {
+        // Handle player dashing
+        function dash() {
             const currentTime = Date.now();
-            if (currentTime - lastBulletTime >= bulletCooldown) {
-                const dx = mouseX - playerBall.x;
-                const dy = mouseY - playerBall.y;
-                const angle = Math.atan2(dy, dx);
+            if (keys.shift && currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
+                playerBall.isDashing = true;
+                playerBall.lastDashTime = currentTime;
 
-                const bulletDx = Math.cos(angle) * bulletSpeed;
-                const bulletDy = Math.sin(angle) * bulletSpeed;
+                // Temporarily increase the player's speed
+                playerBall.speed = playerBall.dashSpeed;
 
-                bullets.push({
+                // Reset the speed back after a short time
+                setTimeout(() => {
+                    playerBall.speed = 5;
+                    playerBall.isDashing = false;
+                }, 150);
+            }
+        }
+
+        // Update afterimages for dash effect
+        function updateAfterimages() {
+            if (playerBall.isDashing) {
+                afterimages.push({
                     x: playerBall.x,
                     y: playerBall.y,
-                    dx: bulletDx,
-                    dy: bulletDy
+                    radius: playerBall.radius * 0.8,
+                    opacity: 0.5
                 });
+            }
 
-                lastBulletTime = currentTime;
+            // Fade out and remove old afterimages
+            afterimages.forEach((image, index) => {
+                image.opacity -= 0.02;
+                if (image.opacity <= 0) {
+                    afterimages.splice(index, 1);
+                }
+            });
+        }
+
+        // Prevent the default behavior of space and shift keys
+        window.addEventListener('keydown', (event) => {
+            if (event.key === ' ' || event.key === 'Shift') {
+                event.preventDefault();
             }
         });
 
-        // Start the game
-        resetGame();
+        // Resize the canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            resetGame(); // Reset the game if the window is resized
+        });
     </script>
 </body>
 </html>
