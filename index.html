@@ -111,7 +111,7 @@
 
         // Start spawning opponents every second
         spawnInterval = setInterval(() => {
-            maxOpponents += 1; // Increase the max number of opponents every second
+            maxOpponents += 5; // Increase the max number of opponents every second
             spawnOpponents(maxOpponents); // Spawn new opponents
         }, 1000);
     });
@@ -168,7 +168,7 @@
             }
 
             // Assign a random speed for each opponent (between 0 and player's base speed)
-            const opponentSpeed = Math.random() * playerBall.speed; 
+            const opponentSpeed = Math.random() * 4; 
 
             opponentBalls.push({
                 x: x,
