@@ -55,26 +55,29 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Game Elements
         let playerBall = { x: 400, y: 300, radius: 20, color: 'blue' };
         let opponentBalls = [];
         let bullets = [];
+        let score = 0;
         let keys = { w: false, a: false, s: false, d: false, shift: false };
         let mouseX = 0, mouseY = 0;
-        let score = 0;
         let lastBulletTime = 0;
         const bulletCooldown = 300; // 300ms cooldown between bullets
         const bulletSpeed = 5; // Bullet speed
-        let gameStarted = true, gamePaused = false, gameOver = false;
+
+        // Dash-related variables
+        const dashCooldown = 1000; // 1 second cooldown for dash
+        let lastDashTime = 0; // Time of last dash
+        const dashSpeedMultiplier = 2; // Dash speed multiplier
 
         // Shop Menu Variables
         let shopOpened = false;
         let scoreForShop = 10; // Shop opens at score 10
         let scoreForNextShop = 20; // Score required to reopen shop after closing
 
-        // Dash-related variables
-        const dashCooldown = 1000; // 1 second cooldown for dash
-        let lastDashTime = 0; // Time of last dash
-        const dashSpeedMultiplier = 2; // Dash speed multiplier
+        // Game Flags
+        let gameStarted = true, gamePaused = false, gameOver = false;
 
         // Drawing functions
         function drawBalls() {
@@ -120,25 +123,21 @@
             shopOpened = false; // Close the shop menu when "Skip" is clicked
         });
 
-        // Shop Menu Update and Logic
-        function update() {
-            if (score >= scoreForShop && !shopOpened) {
-                toggleShopMenu(); // Open shop when score reaches threshold
+        // Player movement logic with dash
+        function movePlayer() {
+            let speed = 3; // Normal movement speed
+            if (keys.shift && Date.now() - lastDashTime > dashCooldown) {
+                speed *= dashSpeedMultiplier; // Boost speed during dash
+                lastDashTime = Date.now(); // Update dash time to cooldown
             }
 
-            movePlayer(); // Move player with possible dash
-            bullets.forEach(bullet => {
-                bullet.x += bullet.dx;
-                bullet.y += bullet.dy;
-
-                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
-                    bullets.splice(bullets.indexOf(bullet), 1); // Remove bullet if off screen
-                }
-            });
-
-            // Other game update logic...
+            if (keys.w) playerBall.y -= speed;
+            if (keys.a) playerBall.x -= speed;
+            if (keys.s) playerBall.y += speed;
+            if (keys.d) playerBall.x += speed;
         }
 
+        // Fire Bullet
         function fireBullet() {
             if (Date.now() - lastBulletTime < bulletCooldown) return; // Prevent firing too fast
 
@@ -155,20 +154,6 @@
 
             bullets.push(bullet);
             lastBulletTime = Date.now();
-        }
-
-        // Player movement logic with dash
-        function movePlayer() {
-            let speed = 3; // Normal movement speed
-            if (keys.shift && Date.now() - lastDashTime > dashCooldown) {
-                speed *= dashSpeedMultiplier; // Boost speed during dash
-                lastDashTime = Date.now(); // Update dash time to cooldown
-            }
-
-            if (keys.w) playerBall.y -= speed;
-            if (keys.a) playerBall.x -= speed;
-            if (keys.s) playerBall.y += speed;
-            if (keys.d) playerBall.x += speed;
         }
 
         // Event listeners for keys
@@ -199,10 +184,31 @@
             }
         });
 
+        // Game update loop
+        function update() {
+            if (score >= scoreForShop && !shopOpened) {
+                toggleShopMenu(); // Open shop when score reaches threshold
+            }
+
+            movePlayer(); // Move player with possible dash
+            bullets.forEach(bullet => {
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+
+                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                    bullets.splice(bullets.indexOf(bullet), 1); // Remove bullet if off screen
+                }
+            });
+
+            // Update game mechanics
+            // Any additional game logic goes here, e.g., enemy movement, score updates, etc.
+        }
+
+        // Game Loop
         function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            update(); // Update the game logic
-            drawBalls(); // Draw player and enemies
+            update(); // Update game state
+            drawBalls(); // Draw game objects
             requestAnimationFrame(gameLoop); // Continue the game loop
         }
 
