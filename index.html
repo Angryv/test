@@ -3,282 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Single Player Ball Game</title>
+    <title>Game with Shop Menu</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: white;
-        }
         canvas {
-            display: block;
+            border: 1px solid black;
+            background-color: #f0f0f0;
         }
-        #menu, #pauseMenu, #gameOverMenu, #shopMenu {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        #menu button, #pauseMenu button, #gameOverMenu button, #shopMenu button {
-            padding: 20px 40px;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            background-color: blue;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        #menu button:hover, #pauseMenu button:hover, #gameOverMenu button:hover, #shopMenu button:hover {
-            background-color: darkblue;
-        }
-        #pauseMenu, #gameOverMenu, #shopMenu {
-            display: none;
-        }
+
+        /* Shop Menu Style */
         #shopMenu {
-            flex-direction: column;
-            align-items: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 400px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            display: none; /* Initially hidden */
+            padding: 20px;
+            text-align: center;
+            color: white;
         }
-        #shopMenu button {
-            margin: 10px 0;
+
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 80%;
+        }
+
+        .button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <div id="menu">
-        <button id="startButton">Start</button>
-    </div>
-    <div id="pauseMenu">
-        <button id="continueButton">Continue</button>
-    </div>
-    <div id="gameOverMenu">
-        <button id="restartButton">Restart</button>
-    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="shopMenu">
-        <button id="skipButton">Skip</button>
-        <button>Item 1</button>
-        <button>Item 2</button>
-        <button>Item 3</button>
+        <div class="button" id="button1">Button 1</div>
+        <div class="button" id="button2">Button 2</div>
+        <div class="button" id="button3">Button 3</div>
+        <div class="button" id="skipButton">Skip</div>
     </div>
-    <canvas id="gameCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const menu = document.getElementById('menu');
-        const pauseMenu = document.getElementById('pauseMenu');
-        const gameOverMenu = document.getElementById('gameOverMenu');
-        const shopMenu = document.getElementById('shopMenu');
-        const startButton = document.getElementById('startButton');
-        const continueButton = document.getElementById('continueButton');
-        const restartButton = document.getElementById('restartButton');
-        const skipButton = document.getElementById('skipButton');
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const playerBall = {
-            x: canvas.width / 4,
-            y: canvas.height / 2,
-            radius: 20,
-            color: 'blue',
-            speed: 5, // Player's base speed
-            dashSpeed: 40,
-            dx: 0,
-            dy: 0,
-            isDashing: false,
-            dashCooldown: 1800,
-            lastDashTime: 0
-        };
-
-        const opponentBalls = [];
-        const bullets = [];
-        const bulletSpeed = 10;
-        const bulletRadius = 5;
-        let lastBulletTime = 0;
-        const bulletCooldown = 300;
-
-        const afterimages = [];
-        const afterimageLifetime = 150;
-
-        let mouseX = canvas.width / 2;
-        let mouseY = canvas.height / 2;
-        let gameStarted = false;
-        let gamePaused = false;
-        let gameOver = false;
-        const keys = { w: false, a: false, s: false, d: false, shift: false };
-
-        let maxOpponents = 5;
-        let spawnInterval = 1;
+        let playerBall = { x: 400, y: 300, radius: 20, color: 'blue' };
+        let opponentBalls = [];
+        let bullets = [];
+        let keys = { w: false, a: false, s: false, d: false, shift: false };
+        let mouseX = 0, mouseY = 0;
         let score = 0;
+        let lastBulletTime = 0;
+        const bulletCooldown = 300; // 300ms cooldown between bullets
+        const bulletSpeed = 5; // Bullet speed
+        let gameStarted = true, gamePaused = false, gameOver = false;
 
-        startButton.addEventListener('click', () => {
-            menu.style.display = 'none';
-            gameStarted = true;
-            gamePaused = false;
-            gameOver = false;
-            resetGame();
-            gameLoop();
+        // Shop Menu Variables
+        let shopOpened = false;
+        let scoreForShop = 10; // Shop opens at score 10
+        let scoreForNextShop = 20; // Score required to reopen shop after closing
 
-            spawnInterval = setInterval(() => {
-                maxOpponents += 1;
-                spawnOpponents(maxOpponents);
-            }, 1000);
-        });
+        // Dash-related variables
+        const dashCooldown = 1000; // 1 second cooldown for dash
+        let lastDashTime = 0; // Time of last dash
+        const dashSpeedMultiplier = 2; // Dash speed multiplier
 
-        continueButton.addEventListener('click', () => {
-            if (window.innerWidth < 800 || window.innerHeight < 600) {
-                alert('Resize the window to full size to continue playing.');
-                return;
-            }
-            pauseMenu.style.display = 'none';
-            gamePaused = false;
-        });
-
-        restartButton.addEventListener('click', () => {
-            gameOverMenu.style.display = 'none';
-            resetGame();
-            gameLoop();
-        });
-
-        skipButton.addEventListener('click', () => {
-            shopMenu.style.display = 'none';
-        });
-
-        function resetGame() {
-            playerBall.x = canvas.width / 4;
-            playerBall.y = canvas.height / 2;
-            playerBall.dx = 0;
-            playerBall.dy = 0;
-            bullets.length = 0;
-            gameOver = false;
-            opponentBalls.length = 0;
-            maxOpponents = 5;
-            score = 0;
-            spawnOpponents(maxOpponents);
-        }
-
-        function spawnOpponents(num) {
-            for (let i = opponentBalls.length; i < num; i++) {
-                const edge = Math.floor(Math.random() * 4);
-                let x, y;
-
-                switch (edge) {
-                    case 0: x = Math.random() * canvas.width; y = 0; break;
-                    case 1: x = canvas.width; y = Math.random() * canvas.height; break;
-                    case 2: x = Math.random() * canvas.width; y = canvas.height; break;
-                    case 3: x = 0; y = Math.random() * canvas.height; break;
-                }
-
-                const opponentSpeed = Math.random() * 4;
-                opponentBalls.push({
-                    x: x, y: y, radius: 20, color: 'red', dx: 0, dy: 0, speed: opponentSpeed
-                });
-            }
-        }
-
-        function update() {
-            if (!gameStarted || gamePaused || gameOver) return;
-
-            playerBall.dx = 0;
-            playerBall.dy = 0;
-            if (keys.w) playerBall.dy = -playerBall.speed;
-            if (keys.s) playerBall.dy = playerBall.speed;
-            if (keys.a) playerBall.dx = -playerBall.speed;
-            if (keys.d) playerBall.dx = playerBall.speed;
-
-            const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
-            if (magnitude > 0) {
-                playerBall.dx /= magnitude;
-                playerBall.dy /= magnitude;
-                playerBall.dx *= playerBall.speed;
-                playerBall.dy *= playerBall.speed;
-            }
-
-            playerBall.x += playerBall.dx;
-            playerBall.y += playerBall.dy;
-
-            if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
-            if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
-            if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
-            if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
-
-            moveOpponentBalls();
-            checkCollisions();
-            updateBullets();
-            updateAfterimages();
-        }
-
-        function moveOpponentBalls() {
-            opponentBalls.forEach(opponentBall => {
-                const dx = playerBall.x - opponentBall.x;
-                const dy = playerBall.y - opponentBall.y;
-
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance === 0) return;
-
-                opponentBall.dx = (dx / distance) * opponentBall.speed;
-                opponentBall.dy = (dy / distance) * opponentBall.speed;
-
-                opponentBall.x += opponentBall.dx;
-                opponentBall.y += opponentBall.dy;
-
-                if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
-                if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
-                if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
-                if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
-            });
-        }
-
-        function checkCollisions() {
-            opponentBalls.forEach(opponentBall => {
-                const dx = playerBall.x - opponentBall.x;
-                const dy = playerBall.y - opponentBall.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < playerBall.radius + opponentBall.radius) {
-                    gameOver = true;
-                    gameOverMenu.style.display = 'flex';
-                }
-            });
-
-            bullets.forEach((bullet, index) => {
-                opponentBalls.forEach((opponentBall, opponentIndex) => {
-                    const dx = bullet.x - opponentBall.x;
-                    const dy = bullet.y - opponentBall.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < bulletRadius + opponentBall.radius) {
-                        opponentBalls.splice(opponentIndex, 1);
-                        bullets.splice(index, 1);
-                        score++;
-                    }
-                });
-            });
-        }
-
-        function drawScore() {
-            ctx.font = "24px Arial";
-            ctx.fillStyle = "black";
-            ctx.fillText(`Score: ${score}`, 20, 40);
-        }
-
+        // Drawing functions
         function drawBalls() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            afterimages.forEach(({ x, y, radius, opacity }) => {
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
-                ctx.fill();
-                ctx.closePath();
-            });
-
-              ctx.beginPath();
+            ctx.beginPath();
             ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
             ctx.fillStyle = playerBall.color;
             ctx.fill();
@@ -294,65 +94,84 @@
 
             bullets.forEach(bullet => {
                 ctx.beginPath();
-                ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
+                ctx.arc(bullet.x, bullet.y, 5, 0, Math.PI * 2); // Bullet size
                 ctx.fillStyle = "black";
                 ctx.fill();
                 ctx.closePath();
             });
         }
 
-        function updateBullets() {
-            const now = Date.now();
-            if (now - lastBulletTime > bulletCooldown) {
-                bullets.forEach((bullet, index) => {
-                    bullet.x += bullet.dx;
-                    bullet.y += bullet.dy;
-
-                    if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
-                        bullets.splice(index, 1);
-                    }
-                });
-                lastBulletTime = now;
+        // Function to show and hide the shop menu
+        function toggleShopMenu() {
+            const shopMenu = document.getElementById('shopMenu');
+            if (score >= scoreForShop) {
+                shopMenu.style.display = 'block'; // Show the shop menu
+                shopOpened = true;
+                scoreForShop = scoreForNextShop; // Next score to reopen shop
+            } else {
+                shopMenu.style.display = 'none'; // Hide the shop menu
+                shopOpened = false;
             }
         }
 
-        function updateAfterimages() {
-            afterimages.push({
+        // Event listener for Skip button
+        document.getElementById('skipButton').addEventListener('click', () => {
+            document.getElementById('shopMenu').style.display = 'none';
+            shopOpened = false; // Close the shop menu when "Skip" is clicked
+        });
+
+        // Shop Menu Update and Logic
+        function update() {
+            if (score >= scoreForShop && !shopOpened) {
+                toggleShopMenu(); // Open shop when score reaches threshold
+            }
+
+            movePlayer(); // Move player with possible dash
+            bullets.forEach(bullet => {
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+
+                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                    bullets.splice(bullets.indexOf(bullet), 1); // Remove bullet if off screen
+                }
+            });
+
+            // Other game update logic...
+        }
+
+        function fireBullet() {
+            if (Date.now() - lastBulletTime < bulletCooldown) return; // Prevent firing too fast
+
+            const dx = mouseX - playerBall.x;
+            const dy = mouseY - playerBall.y;
+            const angle = Math.atan2(dy, dx);
+
+            const bullet = {
                 x: playerBall.x,
                 y: playerBall.y,
-                radius: playerBall.radius,
-                opacity: 0.5
-            });
+                dx: Math.cos(angle) * bulletSpeed,
+                dy: Math.sin(angle) * bulletSpeed
+            };
 
-            if (afterimages.length > 10) {
-                afterimages.shift();
-            }
-
-            afterimages.forEach(afterimage => {
-                afterimage.opacity -= 0.05;
-            });
+            bullets.push(bullet);
+            lastBulletTime = Date.now();
         }
 
-        function showShopMenu() {
-            if (score >= 10) {
-                shopMenu.style.display = 'flex';
+        // Player movement logic with dash
+        function movePlayer() {
+            let speed = 3; // Normal movement speed
+            if (keys.shift && Date.now() - lastDashTime > dashCooldown) {
+                speed *= dashSpeedMultiplier; // Boost speed during dash
+                lastDashTime = Date.now(); // Update dash time to cooldown
             }
+
+            if (keys.w) playerBall.y -= speed;
+            if (keys.a) playerBall.x -= speed;
+            if (keys.s) playerBall.y += speed;
+            if (keys.d) playerBall.x += speed;
         }
 
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            update();
-            drawBalls();
-            drawScore();
-            showShopMenu();
-
-            if (gameOver) {
-                cancelAnimationFrame(gameLoop);
-            } else {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
+        // Event listeners for keys
         window.addEventListener('keydown', (e) => {
             if (e.key === 'w') keys.w = true;
             if (e.key === 'a') keys.a = true;
@@ -376,48 +195,18 @@
 
         window.addEventListener('click', () => {
             if (gameStarted && !gamePaused && !gameOver) {
-                fireBullet();
+                fireBullet(); // Trigger bullet firing
             }
         });
 
-        function fireBullet() {
-            if (Date.now() - lastBulletTime < bulletCooldown) return;
-
-            const dx = mouseX - playerBall.x;
-            const dy = mouseY - playerBall.y;
-            const angle = Math.atan2(dy, dx);
-
-            const bullet = {
-                x: playerBall.x,
-                y: playerBall.y,
-                dx: Math.cos(angle) * bulletSpeed,
-                dy: Math.sin(angle) * bulletSpeed
-            };
-            bullets.push(bullet);
-            lastBulletTime = Date.now();
-        }
-
-        // Add functionality to open the shop menu when score reaches multiples of 10
-        function checkShopMenu() {
-            if (score >= 10 && score % 10 === 0 && !gamePaused && !gameOver) {
-                shopMenu.style.display = 'flex';
-            }
-        }
-
-        // Call this function during the game loop
         function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            update();
-            drawBalls();
-            drawScore();
-            checkShopMenu();  // Check and open the shop menu
-
-            if (gameOver) {
-                cancelAnimationFrame(gameLoop);
-            } else {
-                requestAnimationFrame(gameLoop);
-            }
+            update(); // Update the game logic
+            drawBalls(); // Draw player and enemies
+            requestAnimationFrame(gameLoop); // Continue the game loop
         }
+
+        gameLoop(); // Start the game loop
     </script>
 </body>
 </html>
