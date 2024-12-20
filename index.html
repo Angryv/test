@@ -13,7 +13,7 @@
         canvas {
             display: block;
         }
-        #menu, #pauseMenu, #gameOverMenu {
+        #menu, #pauseMenu, #gameOverMenu, #shopMenu {
             position: absolute;
             top: 0;
             left: 0;
@@ -25,7 +25,7 @@
             justify-content: center;
             z-index: 10;
         }
-        #menu button, #pauseMenu button, #gameOverMenu button {
+        #menu button, #pauseMenu button, #gameOverMenu button, #shopMenu button {
             padding: 20px 40px;
             font-size: 24px;
             font-weight: bold;
@@ -35,11 +35,18 @@
             border-radius: 10px;
             cursor: pointer;
         }
-        #menu button:hover, #pauseMenu button:hover, #gameOverMenu button:hover {
+        #menu button:hover, #pauseMenu button:hover, #gameOverMenu button:hover, #shopMenu button:hover {
             background-color: darkblue;
         }
-        #pauseMenu, #gameOverMenu {
+        #pauseMenu, #gameOverMenu, #shopMenu {
             display: none;
+        }
+        #shopMenu {
+            flex-direction: column;
+            align-items: center;
+        }
+        #shopMenu button {
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -53,447 +60,364 @@
     <div id="gameOverMenu">
         <button id="restartButton">Restart</button>
     </div>
+    <div id="shopMenu">
+        <button id="skipButton">Skip</button>
+        <button>Item 1</button>
+        <button>Item 2</button>
+        <button>Item 3</button>
+    </div>
     <canvas id="gameCanvas"></canvas>
-   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const menu = document.getElementById('menu');
-    const pauseMenu = document.getElementById('pauseMenu');
-    const gameOverMenu = document.getElementById('gameOverMenu');
-    const startButton = document.getElementById('startButton');
-    const continueButton = document.getElementById('continueButton');
-    const restartButton = document.getElementById('restartButton');
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const pauseMenu = document.getElementById('pauseMenu');
+        const gameOverMenu = document.getElementById('gameOverMenu');
+        const shopMenu = document.getElementById('shopMenu');
+        const startButton = document.getElementById('startButton');
+        const continueButton = document.getElementById('continueButton');
+        const restartButton = document.getElementById('restartButton');
+        const skipButton = document.getElementById('skipButton');
 
-    const playerBall = {
-        x: canvas.width / 4,
-        y: canvas.height / 2,
-        radius: 20,
-        color: 'blue',
-        speed: 5, // Player's base speed
-        dashSpeed: 40,
-        dx: 0,
-        dy: 0,
-        isDashing: false,
-        dashCooldown: 1800,
-        lastDashTime: 0
-    };
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-    const opponentBalls = []; // Array to store multiple opponents
-    const bullets = [];
-    const bulletSpeed = 10;
-    const bulletRadius = 5;
-    let lastBulletTime = 0;
-    const bulletCooldown = 300; // milliseconds
+        const playerBall = {
+            x: canvas.width / 4,
+            y: canvas.height / 2,
+            radius: 20,
+            color: 'blue',
+            speed: 5, // Player's base speed
+            dashSpeed: 40,
+            dx: 0,
+            dy: 0,
+            isDashing: false,
+            dashCooldown: 1800,
+            lastDashTime: 0
+        };
 
-    const afterimages = [];
-    const afterimageLifetime = 150; // in milliseconds
+        const opponentBalls = [];
+        const bullets = [];
+        const bulletSpeed = 10;
+        const bulletRadius = 5;
+        let lastBulletTime = 0;
+        const bulletCooldown = 300;
 
-    let mouseX = canvas.width / 2;
-    let mouseY = canvas.height / 2;
-    let gameStarted = false;
-    let gamePaused = false;
-    let gameOver = false;
-    const keys = { w: false, a: false, s: false, d: false, shift: false };
+        const afterimages = [];
+        const afterimageLifetime = 150;
 
-    let maxOpponents = 5;  // Initial maximum number of opponents
-    let spawnInterval =1;     // The interval to spawn opponents every second
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        let gameStarted = false;
+        let gamePaused = false;
+        let gameOver = false;
+        const keys = { w: false, a: false, s: false, d: false, shift: false };
 
-    let score = 0; // Add score variable
-   
+        let maxOpponents = 5;
+        let spawnInterval = 1;
+        let score = 0;
 
-    startButton.addEventListener('click', () => {
-        menu.style.display = 'none';
-        gameStarted = true;
-        gamePaused = false;
-        gameOver = false;
-        resetGame(); // Reset and start the game
-        gameLoop();
+        startButton.addEventListener('click', () => {
+            menu.style.display = 'none';
+            gameStarted = true;
+            gamePaused = false;
+            gameOver = false;
+            resetGame();
+            gameLoop();
 
-        // Start spawning opponents every second
-        spawnInterval = setInterval(() => {
-            maxOpponents += 1; // Increase the max number of opponents every second
-            spawnOpponents(maxOpponents); // Spawn new opponents
-        }, 1000);
-    });
+            spawnInterval = setInterval(() => {
+                maxOpponents += 1;
+                spawnOpponents(maxOpponents);
+            }, 1000);
+        });
 
-    continueButton.addEventListener('click', () => {
-        if (window.innerWidth < 800 || window.innerHeight < 600) {
-            alert('Resize the window to full size to continue playing.');
-            return;
+        continueButton.addEventListener('click', () => {
+            if (window.innerWidth < 800 || window.innerHeight < 600) {
+                alert('Resize the window to full size to continue playing.');
+                return;
+            }
+            pauseMenu.style.display = 'none';
+            gamePaused = false;
+        });
+
+        restartButton.addEventListener('click', () => {
+            gameOverMenu.style.display = 'none';
+            resetGame();
+            gameLoop();
+        });
+
+        skipButton.addEventListener('click', () => {
+            shopMenu.style.display = 'none';
+        });
+
+        function resetGame() {
+            playerBall.x = canvas.width / 4;
+            playerBall.y = canvas.height / 2;
+            playerBall.dx = 0;
+            playerBall.dy = 0;
+            bullets.length = 0;
+            gameOver = false;
+            opponentBalls.length = 0;
+            maxOpponents = 5;
+            score = 0;
+            spawnOpponents(maxOpponents);
         }
-        pauseMenu.style.display = 'none';
-        gamePaused = false;
-    });
 
-    restartButton.addEventListener('click', () => {
-        gameOverMenu.style.display = 'none';
-        resetGame();
-        gameLoop();
-    });
+        function spawnOpponents(num) {
+            for (let i = opponentBalls.length; i < num; i++) {
+                const edge = Math.floor(Math.random() * 4);
+                let x, y;
 
-    function resetGame() {
-        playerBall.x = canvas.width / 4;
-        playerBall.y = canvas.height / 2;
-        playerBall.dx = 0;
-        playerBall.dy = 0;
-        bullets.length = 0; // clear bullets
-        gameOver = false;
-        opponentBalls.length = 0; // Clear previous opponents
-        maxOpponents = 5;  // Reset the max opponents
-        score = 0; // Reset the score
-        spawnOpponents(maxOpponents); // Spawn the initial number of opponents
-    }
+                switch (edge) {
+                    case 0: x = Math.random() * canvas.width; y = 0; break;
+                    case 1: x = canvas.width; y = Math.random() * canvas.height; break;
+                    case 2: x = Math.random() * canvas.width; y = canvas.height; break;
+                    case 3: x = 0; y = Math.random() * canvas.height; break;
+                }
 
-    function spawnOpponents(num) {
-        for (let i = opponentBalls.length; i < num; i++) {
-            const edge = Math.floor(Math.random() * 4); // Randomly choose one of the four edges (0: top, 1: right, 2: bottom, 3: left)
-            let x, y;
+                const opponentSpeed = Math.random() * 4;
+                opponentBalls.push({
+                    x: x, y: y, radius: 20, color: 'red', dx: 0, dy: 0, speed: opponentSpeed
+                });
+            }
+        }
 
-            switch (edge) {
-                case 0: // Top edge
-                    x = Math.random() * canvas.width;
-                    y = 0;
-                    break;
-                case 1: // Right edge
-                    x = canvas.width;
-                    y = Math.random() * canvas.height;
-                    break;
-                case 2: // Bottom edge
-                    x = Math.random() * canvas.width;
-                    y = canvas.height;
-                    break;
-                case 3: // Left edge
-                    x = 0;
-                    y = Math.random() * canvas.height;
-                    break;
+        function update() {
+            if (!gameStarted || gamePaused || gameOver) return;
+
+            playerBall.dx = 0;
+            playerBall.dy = 0;
+            if (keys.w) playerBall.dy = -playerBall.speed;
+            if (keys.s) playerBall.dy = playerBall.speed;
+            if (keys.a) playerBall.dx = -playerBall.speed;
+            if (keys.d) playerBall.dx = playerBall.speed;
+
+            const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
+            if (magnitude > 0) {
+                playerBall.dx /= magnitude;
+                playerBall.dy /= magnitude;
+                playerBall.dx *= playerBall.speed;
+                playerBall.dy *= playerBall.speed;
             }
 
-            // Assign a random speed for each opponent (between 0 and player's base speed)
-            const opponentSpeed = Math.random() * 4; 
+            playerBall.x += playerBall.dx;
+            playerBall.y += playerBall.dy;
 
-            opponentBalls.push({
-                x: x,
-                y: y,
-                radius: 20,
-                color: 'red',
-                dx: 0,
-                dy: 0,
-                speed: opponentSpeed // Store the opponent's speed
+            if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
+            if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
+            if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
+            if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
+
+            moveOpponentBalls();
+            checkCollisions();
+            updateBullets();
+            updateAfterimages();
+        }
+
+        function moveOpponentBalls() {
+            opponentBalls.forEach(opponentBall => {
+                const dx = playerBall.x - opponentBall.x;
+                const dy = playerBall.y - opponentBall.y;
+
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance === 0) return;
+
+                opponentBall.dx = (dx / distance) * opponentBall.speed;
+                opponentBall.dy = (dy / distance) * opponentBall.speed;
+
+                opponentBall.x += opponentBall.dx;
+                opponentBall.y += opponentBall.dy;
+
+                if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
+                if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
+                if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
+                if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
             });
         }
-    }
 
-    function update() {
-        if (!gameStarted || gamePaused || gameOver) return;
-
-        // Update movement based on WASD keys
-        playerBall.dx = 0;
-        playerBall.dy = 0;
-        if (keys.w) playerBall.dy = -playerBall.speed;
-        if (keys.s) playerBall.dy = playerBall.speed;
-        if (keys.a) playerBall.dx = -playerBall.speed;
-        if (keys.d) playerBall.dx = playerBall.speed;
-
-        // Normalize diagonal movement
-        const magnitude = Math.sqrt(playerBall.dx ** 2 + playerBall.dy ** 2);
-        if (magnitude > 0) {
-            playerBall.dx /= magnitude;
-            playerBall.dy /= magnitude;
-            playerBall.dx *= playerBall.speed;
-            playerBall.dy *= playerBall.speed;
-        }
-
-        // Update position
-        playerBall.x += playerBall.dx;
-        playerBall.y += playerBall.dy;
-
-        // Prevent going out of bounds
-        if (playerBall.x - playerBall.radius < 0) playerBall.x = playerBall.radius;
-        if (playerBall.x + playerBall.radius > canvas.width) playerBall.x = canvas.width - playerBall.radius;
-        if (playerBall.y - playerBall.radius < 0) playerBall.y = playerBall.radius;
-        if (playerBall.y + playerBall.radius > canvas.height) playerBall.y = canvas.height - playerBall.radius;
-
-        moveOpponentBalls();
-        checkCollisions();
-        updateBullets();
-        updateAfterimages();
-    }
-
-    function moveOpponentBalls() {
-        opponentBalls.forEach(opponentBall => {
-            const dx = playerBall.x - opponentBall.x;
-            const dy = playerBall.y - opponentBall.y;
-
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance === 0) return;
-
-            opponentBall.dx = (dx / distance) * opponentBall.speed;
-            opponentBall.dy = (dy / distance) * opponentBall.speed;
-
-            opponentBall.x += opponentBall.dx;
-            opponentBall.y += opponentBall.dy;
-
-            if (opponentBall.x - opponentBall.radius < 0) opponentBall.x = opponentBall.radius;
-            if (opponentBall.x + opponentBall.radius > canvas.width) opponentBall.x = canvas.width - opponentBall.radius;
-            if (opponentBall.y - opponentBall.radius < 0) opponentBall.y = opponentBall.radius;
-            if (opponentBall.y + opponentBall.radius > canvas.height) opponentBall.y = canvas.height - opponentBall.radius;
-        });
-    }
-
-    function checkCollisions() {
-        // Check collision with each opponent
-        opponentBalls.forEach(opponentBall => {
-            const dx = playerBall.x - opponentBall.x;
-            const dy = playerBall.y - opponentBall.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < playerBall.radius + opponentBall.radius) {
-                gameOver = true;
-                gameOverMenu.style.display = 'flex';
-            }
-        });
-
-        // Check bullet collisions with opponents
-        bullets.forEach((bullet, index) => {
-            opponentBalls.forEach((opponentBall, opponentIndex) => {
-                const dx = bullet.x - opponentBall.x;
-                const dy = bullet.y - opponentBall.y;
+        function checkCollisions() {
+            opponentBalls.forEach(opponentBall => {
+                const dx = playerBall.x - opponentBall.x;
+                const dy = playerBall.y - opponentBall.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < bulletRadius + opponentBall.radius) {
-                    // Remove the opponent and the bullet
-                    opponentBalls.splice(opponentIndex, 1);
-                    bullets.splice(index, 1);
-
-                    // Increment score
-                    score++;
+                if (distance < playerBall.radius + opponentBall.radius) {
+                    gameOver = true;
+                    gameOverMenu.style.display = 'flex';
                 }
             });
-        });
-    }
 
-    
-    function drawScore() {
-        ctx.font = "24px Arial";
-        ctx.fillStyle = "black";
-        ctx.fillText(`Score: ${score}`, 20, 40);
-    }
+            bullets.forEach((bullet, index) => {
+                opponentBalls.forEach((opponentBall, opponentIndex) => {
+                    const dx = bullet.x - opponentBall.x;
+                    const dy = bullet.y - opponentBall.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < bulletRadius + opponentBall.radius) {
+                        opponentBalls.splice(opponentIndex, 1);
+                        bullets.splice(index, 1);
+                        score++;
+                    }
+                });
+            });
+        }
 
-    function drawBalls() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function drawScore() {
+            ctx.font = "24px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText(`Score: ${score}`, 20, 40);
+        }
 
-        // Draw afterimages
-        afterimages.forEach(({ x, y, radius, opacity }) => {
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+        function drawBalls() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            afterimages.forEach(({ x, y, radius, opacity }) => {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+                ctx.fill();
+                ctx.closePath();
+            });
+
+              ctx.beginPath();
+            ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
+            ctx.fillStyle = playerBall.color;
             ctx.fill();
             ctx.closePath();
+
+            opponentBalls.forEach(opponentBall => {
+                ctx.beginPath();
+                ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
+                ctx.fillStyle = opponentBall.color;
+                ctx.fill();
+                ctx.closePath();
+            });
+
+            bullets.forEach(bullet => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
+                ctx.fillStyle = "black";
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        function updateBullets() {
+            const now = Date.now();
+            if (now - lastBulletTime > bulletCooldown) {
+                bullets.forEach((bullet, index) => {
+                    bullet.x += bullet.dx;
+                    bullet.y += bullet.dy;
+
+                    if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                        bullets.splice(index, 1);
+                    }
+                });
+                lastBulletTime = now;
+            }
+        }
+
+        function updateAfterimages() {
+            afterimages.push({
+                x: playerBall.x,
+                y: playerBall.y,
+                radius: playerBall.radius,
+                opacity: 0.5
+            });
+
+            if (afterimages.length > 10) {
+                afterimages.shift();
+            }
+
+            afterimages.forEach(afterimage => {
+                afterimage.opacity -= 0.05;
+            });
+        }
+
+        function showShopMenu() {
+            if (score >= 10) {
+                shopMenu.style.display = 'flex';
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            update();
+            drawBalls();
+            drawScore();
+            showShopMenu();
+
+            if (gameOver) {
+                cancelAnimationFrame(gameLoop);
+            } else {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'w') keys.w = true;
+            if (e.key === 'a') keys.a = true;
+            if (e.key === 's') keys.s = true;
+            if (e.key === 'd') keys.d = true;
+            if (e.key === 'Shift') keys.shift = true;
         });
 
-        // Player ball
-        ctx.beginPath();
-        ctx.arc(playerBall.x, playerBall.y, playerBall.radius, 0, Math.PI * 2);
-        ctx.fillStyle = playerBall.color;
-        ctx.fill();
-        ctx.closePath();
-
-        // Opponent balls
-        opponentBalls.forEach(opponentBall => {
-            ctx.beginPath();
-            ctx.arc(opponentBall.x, opponentBall.y, opponentBall.radius, 0, Math.PI * 2);
-            ctx.fillStyle = opponentBall.color;
-            ctx.fill();
-            ctx.closePath();
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'w') keys.w = false;
+            if (e.key === 'a') keys.a = false;
+            if (e.key === 's') keys.s = false;
+            if (e.key === 'd') keys.d = false;
+            if (e.key === 'Shift') keys.shift = false;
         });
 
-        drawGun();
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
 
-        drawScore();
-    }
+        window.addEventListener('click', () => {
+            if (gameStarted && !gamePaused && !gameOver) {
+                fireBullet();
+            }
+        });
 
-    function drawGun() {
-        if (!gameStarted || gamePaused || gameOver) return;
-
-        const dx = mouseX - playerBall.x;
-        const dy = mouseY - playerBall.y;
-        const angle = Math.atan2(dy, dx);
-
-        const gunX = playerBall.x + Math.cos(angle) * playerBall.radius;
-        const gunY = playerBall.y + Math.sin(angle) * playerBall.radius;
-
-        ctx.beginPath();
-        ctx.moveTo(gunX, gunY);
-        ctx.lineTo(gunX + Math.cos(angle) * 24, gunY + Math.sin(angle) * 24);
-        ctx.lineWidth = 12;
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    function shootBullet() {
-        const currentTime = Date.now();
-        if (currentTime - lastBulletTime >= bulletCooldown) {
-            lastBulletTime = currentTime;
+        function fireBullet() {
+            if (Date.now() - lastBulletTime < bulletCooldown) return;
 
             const dx = mouseX - playerBall.x;
             const dy = mouseY - playerBall.y;
             const angle = Math.atan2(dy, dx);
 
-            bullets.push({
-                x: playerBall.x + Math.cos(angle) * playerBall.radius,
-                y: playerBall.y + Math.sin(angle) * playerBall.radius,
-                dx: Math.cos(angle) * bulletSpeed,
-                dy: Math.sin(angle) * bulletSpeed
-            });
-        }
-    }
-
-    function updateBullets() {
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            const bullet = bullets[i];
-            bullet.x += bullet.dx;
-            bullet.y += bullet.dy;
-
-            // Remove bullets that go out of bounds
-            if (
-                bullet.x < 0 ||
-                bullet.x > canvas.width ||
-                bullet.y < 0 ||
-                bullet.y > canvas.height
-            ) {
-                bullets.splice(i, 1);
-                continue;
-            }
-        }
-    }
-
-    let isMouseDown = false;
-
-function shootBulletContinuously() {
-    if (isMouseDown) {
-        shootBullet();
-        setTimeout(shootBulletContinuously, bulletCooldown); // Recursively shoot bullets at the cooldown interval
-    }
-}
-
-window.addEventListener('mousedown', () => {
-    isMouseDown = true;
-    shootBulletContinuously();
-});
-
-window.addEventListener('mouseup', () => {
-    isMouseDown = false;
-});
-
-       
-    function gameLoop() {
-        if (!gameStarted) return;
-
-        update();
-        dash();
-
-        // Draw balls (player and opponents)
-        drawBalls();
-
-        // Draw bullets after updating them
-        drawBullets();
-
-        if (!gameOver) {
-            requestAnimationFrame(gameLoop);
-        }
-    }
-
-    // Function to draw bullets separately (called after updating bullets)
-    function drawBullets() {
-        bullets.forEach((bullet) => {
-            ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
-            ctx.fillStyle = 'orange';
-            ctx.fill();
-            ctx.closePath();
-        });
-    }
-
-    window.addEventListener('mousemove', (event) => {
-        mouseX = event.clientX;
-        mouseY = event.clientY;
-    });
-
-
-    window.addEventListener('keydown', (event) => {
-        if (event.key === 'w') keys.w = true;
-        if (event.key === 'a') keys.a = true;
-        if (event.key === 's') keys.s = true;
-        if (event.key === 'd') keys.d = true;
-        if (event.key === 'Shift') keys.shift = true;
-    });
-
-    window.addEventListener('keyup', (event) => {
-        if (event.key === 'w') keys.w = false;
-        if (event.key === 'a') keys.a = false;
-        if (event.key === 's') keys.s = false;
-        if (event.key === 'd') keys.d = false;
-        if (event.key === 'Shift') keys.shift = false
-    });
-
-    // Add event listener for mouse button to shoot
-    window.addEventListener('mousedown', () => {
-        shootBullet();
-    });
-
-    // Handle player dashing
-    function dash() {
-        const currentTime = Date.now();
-        if (keys.shift && currentTime - playerBall.lastDashTime >= playerBall.dashCooldown) {
-            playerBall.isDashing = true;
-            playerBall.lastDashTime = currentTime;
-
-            // Temporarily increase the player's speed
-            playerBall.speed = playerBall.dashSpeed;
-
-            // Reset the speed back after a short time
-            setTimeout(() => {
-                playerBall.speed = 5;
-                playerBall.isDashing = false;
-            }, 150);
-        }
-    }
-
-    // Update afterimages for dash effect
-    function updateAfterimages() {
-        if (playerBall.isDashing) {
-            afterimages.push({
+            const bullet = {
                 x: playerBall.x,
                 y: playerBall.y,
-                radius: playerBall.radius * 0.8,
-                opacity: 0.5
-            });
+                dx: Math.cos(angle) * bulletSpeed,
+                dy: Math.sin(angle) * bulletSpeed
+            };
+            bullets.push(bullet);
+            lastBulletTime = Date.now();
         }
 
-        // Fade out and remove old afterimages
-        afterimages.forEach((image, index) => {
-            image.opacity -= 0.02;
-            if (image.opacity <= 0) {
-                afterimages.splice(index, 1);
+        // Add functionality to open the shop menu when score reaches multiples of 10
+        function checkShopMenu() {
+            if (score >= 10 && score % 10 === 0 && !gamePaused && !gameOver) {
+                shopMenu.style.display = 'flex';
             }
-        });
-    }
-
-    // Prevent the default behavior of space and shift keys
-    window.addEventListener('keydown', (event) => {
-        if (event.key === ' ' || event.key === 'Shift') {
-            event.preventDefault();
         }
-    });
 
-    // Resize the canvas on window resize
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        resetGame(); // Reset the game if the window is resized
-    });
-</script>
+        // Call this function during the game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            update();
+            drawBalls();
+            drawScore();
+            checkShopMenu();  // Check and open the shop menu
+
+            if (gameOver) {
+                cancelAnimationFrame(gameLoop);
+            } else {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+    </script>
 </body>
 </html>
