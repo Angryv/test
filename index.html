@@ -101,6 +101,9 @@
     let maxOpponents = 5;  // Initial maximum number of opponents
     let spawnInterval =1;     // The interval to spawn opponents every second
 
+    let score = 0; // Add score variable
+   
+
     startButton.addEventListener('click', () => {
         menu.style.display = 'none';
         gameStarted = true;
@@ -140,6 +143,7 @@
         gameOver = false;
         opponentBalls.length = 0; // Clear previous opponents
         maxOpponents = 5;  // Reset the max opponents
+        score = 0; // Reset the score
         spawnOpponents(maxOpponents); // Spawn the initial number of opponents
     }
 
@@ -261,9 +265,19 @@
                     // Remove the opponent and the bullet
                     opponentBalls.splice(opponentIndex, 1);
                     bullets.splice(index, 1);
+
+                    // Increment score
+                    score++;
                 }
             });
         });
+    }
+
+    
+    function drawScore() {
+        ctx.font = "24px Arial";
+        ctx.fillStyle = "black";
+        ctx.fillText(`Score: ${score}`, 20, 40);
     }
 
     function drawBalls() {
@@ -295,6 +309,8 @@
         });
 
         drawGun();
+
+        drawScore();
     }
 
     function drawGun() {
