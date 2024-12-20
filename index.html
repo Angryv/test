@@ -353,6 +353,25 @@
         }
     }
 
+    let isMouseDown = false;
+
+function shootBulletContinuously() {
+    if (isMouseDown) {
+        shootBullet();
+        setTimeout(shootBulletContinuously, bulletCooldown); // Recursively shoot bullets at the cooldown interval
+    }
+}
+
+window.addEventListener('mousedown', () => {
+    isMouseDown = true;
+    shootBulletContinuously();
+});
+
+window.addEventListener('mouseup', () => {
+    isMouseDown = false;
+});
+
+       
     function gameLoop() {
         if (!gameStarted) return;
 
@@ -385,6 +404,7 @@
         mouseX = event.clientX;
         mouseY = event.clientY;
     });
+
 
     window.addEventListener('keydown', (event) => {
         if (event.key === 'w') keys.w = true;
