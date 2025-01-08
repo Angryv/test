@@ -442,6 +442,24 @@ window.addEventListener('mouseup', () => {
     window.addEventListener('mousedown', () => {
         shootBullet();
     });
+    window.addEventListener('keydown', (event) => {
+    if (event.key === 'w') keys.w = true;
+    if (event.key === 'a') keys.a = true;
+    if (event.key === 's') keys.s = true;
+    if (event.key === 'd') keys.d = true;
+    if (event.key === 'Shift') keys.shift = true;
+
+    // Toggle pause menu with Escape key
+    if (event.key === 'Escape') {
+        if (!gamePaused) {
+            gamePaused = true;
+            pauseMenu.style.display = 'flex';
+        } else {
+            pauseMenu.style.display = 'none';
+            gamePaused = false;
+        }
+    }
+});
 
     // Handle player dashing
     function dash() {
