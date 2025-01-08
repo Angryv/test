@@ -405,6 +405,9 @@ window.addEventListener('mouseup', () => {
         }
     }
 
+    let spawnIntervalId = null; // To store the interval ID
+
+       
     // Function to draw bullets separately (called after updating bullets)
     function drawBullets() {
         bullets.forEach((bullet) => {
@@ -442,7 +445,7 @@ window.addEventListener('mouseup', () => {
     window.addEventListener('mousedown', () => {
         shootBullet();
     });
-    window.addEventListener('keydown', (event) => {
+window.addEventListener('keydown', (event) => {
     if (event.key === 'w') keys.w = true;
     if (event.key === 'a') keys.a = true;
     if (event.key === 's') keys.s = true;
@@ -454,10 +457,48 @@ window.addEventListener('mouseup', () => {
         if (!gamePaused) {
             gamePaused = true;
             pauseMenu.style.display = 'flex';
+
+            // Stop spawning enemies
+            clearInterval(spawnIntervalId);
+            spawnIntervalId = null;
         } else {
             pauseMenu.style.display = 'none';
             gamePaused = false;
+
+            // Resume spawning enemies
+            spawnIntervalId = setInterval(() => {
+                maxOpponents += 1; // Increase the max number of opponents every second
+                spawnOpponents(maxOpponents); // Spawn new opponents
+            }, 1000);
         }
+    }
+});
+startButton.addEventListener('click', () => {
+    menu.style.display = 'none';
+    gameStarted = true;
+    gamePaused = false;
+    gameOver = false;
+    resetGame(); // Reset and start the game
+    gameLoop();
+
+    // Start spawning opponents every second
+    spawnIntervalId = setInterval(() => {
+        maxOpponents += 1; // Increase the max number of opponents every second
+        spawnOpponents(maxOpponents); // Spawn new opponents
+    }, 1000);
+});
+
+       restartButton.addEventListener('click', () => {
+    gameOverMenu.style.display = 'none';
+    resetGame();
+    gameLoop();
+
+    // Restart spawning opponents
+    if (!spawnIntervalId) {
+        spawnIntervalId = setInterval(() => {
+            maxOpponents += 1;
+            spawnOpponents(maxOpponents);
+        }, 1000);
     }
 });
 
