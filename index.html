@@ -119,14 +119,22 @@
         }, 1000);
     });
 
-    continueButton.addEventListener('click', () => {
-        if (window.innerWidth < 800 || window.innerHeight < 600) {
-            alert('Resize the window to full size to continue playing.');
-            return;
-        }
-        pauseMenu.style.display = 'none';
-        gamePaused = false;
-    });
+continueButton.addEventListener('click', () => {
+    if (window.innerWidth < 800 || window.innerHeight < 600) {
+        alert('Resize the window to full size to continue playing.');
+        return;
+    }
+    pauseMenu.style.display = 'none';
+    gamePaused = false; // Resume the game
+});
+
+restartButton.addEventListener('click', () => {
+    gameOverMenu.style.display = 'none';
+    resetGame();
+    gameLoop();
+    startEnemySpawning(); // Restart enemy spawning
+});
+
 
     restartButton.addEventListener('click', () => {
         gameOverMenu.style.display = 'none';
@@ -370,6 +378,39 @@
     }
 
     let isMouseDown = false;
+let spawnTimer = 0; // Tracks time for spawning opponents
+
+function spawnEnemies(timestamp) {
+    if (!gameStarted || gamePaused || gameOver) return; // Stop spawning when game is paused or over
+
+    // Increment timer and spawn enemies if enough time has passed
+    spawnTimer += 1;
+    if (spawnTimer >= 60) { // Adjust this value for desired spawn frequency (e.g., 60 for approx 1 second)
+        maxOpponents += 1; // Increase max opponents over time
+        spawnOpponents(maxOpponents);
+        spawnTimer = 0; // Reset the timer
+    }
+
+    requestAnimationFrame(spawnEnemies);
+}
+
+// Call this function to start enemy spawning
+function startEnemySpawning() {
+    spawnTimer = 0;
+    requestAnimationFrame(spawnEnemies);
+}
+
+// Call startEnemySpawning() when the game starts
+startButton.addEventListener('click', () => {
+    menu.style.display = 'none';
+    gameStarted = true;
+    gamePaused = false;
+    gameOver = false;
+    resetGame();
+    gameLoop();
+    startEnemySpawning(); // Start spawning opponents
+});
+
 
 function shootBulletContinuously() {
     if (isMouseDown) {
@@ -387,7 +428,7 @@ window.addEventListener('mouseup', () => {
     isMouseDown = false;
 });
 
-       
+  
     function gameLoop() {
         if (!gameStarted) return;
 
@@ -404,6 +445,8 @@ window.addEventListener('mouseup', () => {
             requestAnimationFrame(gameLoop);
         }
     }
+
+    
 
     // Function to draw bullets separately (called after updating bullets)
     function drawBullets() {
