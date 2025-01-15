@@ -13,6 +13,7 @@
         canvas {
             display: block;
         }
+
         #menu, #pauseMenu, #gameOverMenu {
             position: absolute;
             top: 0;
@@ -41,6 +42,33 @@
         #pauseMenu, #gameOverMenu {
             display: none;
         }
+        #shopMenu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    display: none;
+}
+#shopMenu button {
+    padding: 20px 40px;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background-color: green;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 10px;
+}
+#shopMenu button:hover {
+    background-color: darkgreen;
+}
     </style>
 </head>
 <body>
@@ -53,6 +81,11 @@
     <div id="gameOverMenu">
         <button id="restartButton">Restart</button>
     </div>
+    div id="shopMenu">
+    <button id="fireRateButton">Faster Fire Rate (+10%)</button>
+    <button id="bulletSizeButton">Bigger Bullets (+20%)</button>
+    <button id="bulletPierceButton">Bullet Pierce (+1)</button>
+</div>
     <canvas id="gameCanvas"></canvas>
    <script>
     const canvas = document.getElementById('gameCanvas');
@@ -102,7 +135,12 @@
     let spawnInterval =1;     // The interval to spawn opponents every second
 
     let score = 0; // Add score variable
-   
+
+    let fireRateModifier = 1; // Base fire rate multiplier
+    let bulletSizeModifier = 1; // Base bullet size multiplier
+    let bulletPierce = 0; // Base bullet pierce count
+    let nextShopThreshold = 10; // First threshold for shop appearance
+
 
     startButton.addEventListener('click', () => {
         menu.style.display = 'none';
@@ -340,23 +378,45 @@ restartButton.addEventListener('click', () => {
         ctx.closePath();
     }
 
-    function shootBullet() {
-        const currentTime = Date.now();
-        if (currentTime - lastBulletTime >= bulletCooldown) {
-            lastBulletTime = currentTime;
+   function shootBullet() {
+    const currentTime = Date.now();
+    if (currentTime - lastBulletTime >= bulletCooldown * fireRateModifier) {
+        lastBulletTime = currentTime;
 
-            const dx = mouseX - playerBall.x;
-            const dy = mouseY - playerBall.y;
-            const angle = Math.atan2(dy, dx);
+        const dx = mouseX - playerBall.x;
+        const dy = mouseY - playerBall.y;
+        const angle = Math.atan2(dy, dx);
 
-            bullets.push({
-                x: playerBall.x + Math.cos(angle) * playerBall.radius,
-                y: playerBall.y + Math.sin(angle) * playerBall.radius,
-                dx: Math.cos(angle) * bulletSpeed,
-                dy: Math.sin(angle) * bulletSpeed
-            });
-        }
+        bullets.push({
+            x: playerBall.x + Math.cos(angle) * playerBall.radius,
+            y: playerBall.y + Math.sin(angle) * playerBall.radius,
+            dx: Math.cos(angle) * bulletSpeed,
+            dy: Math.sin(angle) * bulletSpeed,
+            pierce: bulletPierce
+        });
     }
+}
+
+function drawBullets() {
+    bullets.forEach((bullet, index) => {
+        ctx.beginPath();
+        ctx.arc(
+            bullet.x,
+            bullet.y,
+            bulletRadius * bulletSizeModifier, // Apply size modifier
+            0,
+            Math.PI * 2
+        );
+        ctx.fillStyle = 'orange';
+        ctx.fill();
+        ctx.closePath();
+
+        // Handle pierce logic
+        if (bullet.pierce < 0) {
+            bullets.splice(index, 1);
+        }
+    });
+}
 
     function updateBullets() {
         for (let i = bullets.length - 1; i >= 0; i--) {
@@ -376,6 +436,24 @@ restartButton.addEventListener('click', () => {
             }
         }
     }
+       bullets.forEach((bullet, index) => {
+    opponentBalls.forEach((opponentBall, opponentIndex) => {
+        const dx = bullet.x - opponentBall.x;
+        const dy = bullet.y - opponentBall.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < bulletRadius * bulletSizeModifier + opponentBall.radius) {
+            opponentBalls.splice(opponentIndex, 1);
+            bullet.pierce -= 1; // Decrease pierce count
+            if (bullet.pierce < 0) {
+                bullets.splice(index, 1); // Remove bullet if pierce is exhausted
+            }
+
+            // Increment score
+            score++;
+        }
+    });
+});
+
 
     let isMouseDown = false;
 let spawnTimer = 0; // Tracks time for spawning opponents
@@ -446,7 +524,13 @@ window.addEventListener('mouseup', () => {
         }
     }
 
-    
+    function update() {
+    if (!gameStarted || gamePaused || gameOver) return;
+
+    // Existing logic...
+    checkScoreForShop();
+}
+
 
     // Function to draw bullets separately (called after updating bullets)
     function drawBullets() {
@@ -486,6 +570,32 @@ window.addEventListener('mouseup', () => {
         shootBullet();
     });
 
+const shopMenu = document.getElementById('shopMenu');
+const fireRateButton = document.getElementById('fireRateButton');
+const bulletSizeButton = document.getElementById('bulletSizeButton');
+const bulletPierceButton = document.getElementById('bulletPierceButton');
+
+fireRateButton.addEventListener('click', () => {
+    fireRateModifier *= 0.9; // Increase fire rate by 10%
+    closeShopMenu();
+});
+
+bulletSizeButton.addEventListener('click', () => {
+    bulletSizeModifier *= 1.2; // Increase bullet size by 20%
+    closeShopMenu();
+});
+
+bulletPierceButton.addEventListener('click', () => {
+    bulletPierce += 1; // Add +1 pierce to bullets
+    closeShopMenu();
+});
+
+function closeShopMenu() {
+    shopMenu.style.display = 'none';
+    gamePaused = false;
+}
+
+       
     // Handle player dashing
     function dash() {
         const currentTime = Date.now();
