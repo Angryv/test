@@ -102,6 +102,19 @@
     let spawnInterval =1;     // The interval to spawn opponents every second
 
     let score = 0; // Add score variable
+       
+    const playerBall = {
+    ...,
+    health: 3
+};
+
+function drawHealthBar() {
+    ctx.fillStyle = 'red';
+    ctx.fillRect(20, 60, playerBall.health * 50, 20); // Adjust dimensions as needed
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(20, 60, 150, 20);
+}
+
    
 
     startButton.addEventListener('click', () => {
@@ -141,6 +154,9 @@ restartButton.addEventListener('click', () => {
         resetGame();
         gameLoop();
     });
+    
+       const bulletSpeed = Math.min(10 + score * 0.2, 20); // Cap the speed at 20
+
 
     function resetGame() {
         playerBall.x = canvas.width / 4;
